@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>OceanGuard | Marine Pollution Incident Management</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+  :root {
+    --teal: #00d2ff;
+    --green: #00d264;
+    --dark: #020f1a;
+    --dark2: #0a1f2d;
+    --red: #ff5050;
+    --yellow: #ffc800;
+  }
+  html { scroll-behavior: smooth; }
+  body { background: var(--dark); color: white; overflow-x: hidden; min-height: 100vh; }
+
+  a { color: inherit; }
+
+  /* ── GLOBAL NAV ── */
+  nav#mainNav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    padding: 16px 40px; display: flex; align-items: center; justify-content: space-between;
+    background: rgba(2, 15, 26, 0.85); backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0,210,255,0.15);
+  }
+  .nav-logo { font-size: 20px; font-weight: 800; color: var(--teal); text-decoration: none; display: flex; align-items: center; gap: 8px; cursor: pointer; background: none; border: none; }
+  .nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
+  .nav-links a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .nav-links a:hover { color: var(--teal); }
+  .nav-cta { background: linear-gradient(135deg, var(--teal), var(--green)); color: var(--dark) !important; padding: 8px 20px; border-radius: 99px; font-weight: 700 !important; border: none; cursor: pointer; font-size: 14px; font-family: 'Poppins', sans-serif; }
+  body.dashboard-mode nav#mainNav { display: none; }
+
+  /* ── VIEW SWITCHING ── */
+  .view { display: none; padding-top: 74px; }
+  .view.active { display: block; }
+  #view-role.active, #view-admin-login.active { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 100px 20px 60px; }
+  body.dashboard-mode .view { padding-top: 0; }
+
+  .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--teal); text-decoration: none; font-size: 13px; font-weight: 600; cursor: pointer; background: none; border: none; margin-bottom: 18px; }
+  .back-link:hover { text-decoration: underline; }
+
+  /* ── HERO / LANDING (from landing.html) ── */
+  .hero { min-height: 92vh; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; padding: 60px 40px; perspective: 1000px; }
+  .hero-bg { position: absolute; inset: 0; z-index: 0; background: radial-gradient(ellipse at 20% 50%, rgba(0,210,255,0.12) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(0,210,100,0.08) 0%, transparent 50%), linear-gradient(180deg, #020f1a 0%, #041523 100%); }
+  #hero3d { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+  .bubbles { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+  .bubble { position: absolute; bottom: -100px; background: rgba(0,210,255,0.08); border: 1px solid rgba(0,210,255,0.15); border-radius: 50%; animation: rise linear infinite; }
+  .bubble:nth-child(1) { width: 60px; height: 60px; left: 10%; animation-duration: 8s; }
+  .bubble:nth-child(2) { width: 40px; height: 40px; left: 25%; animation-duration: 12s; animation-delay: 2s; }
+  .bubble:nth-child(3) { width: 80px; height: 80px; left: 40%; animation-duration: 10s; animation-delay: 4s; }
+  .bubble:nth-child(4) { width: 30px; height: 30px; left: 60%; animation-duration: 9s; animation-delay: 1s; }
+  .bubble:nth-child(5) { width: 50px; height: 50px; left: 75%; animation-duration: 11s; animation-delay: 3s; }
+  .bubble:nth-child(6) { width: 70px; height: 70px; left: 90%; animation-duration: 7s; animation-delay: 5s; }
+  @keyframes rise { 0% { transform: translateY(0) scale(1); opacity: 0.6; } 100% { transform: translateY(-110vh) scale(1.2); opacity: 0; } }
+  .hero-content { position: relative; z-index: 2; text-align: center; max-width: 800px; margin: 0 auto; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(0,210,255,0.1); border: 1px solid rgba(0,210,255,0.3); border-radius: 99px; padding: 6px 16px; font-size: 12px; color: var(--teal); font-weight: 600; letter-spacing: 0.08em; margin-bottom: 24px; }
+  .hero-title { font-size: clamp(2.2rem, 6vw, 4.5rem); font-weight: 800; line-height: 1.1; margin-bottom: 20px; }
+  .hero-title .accent { background: linear-gradient(135deg, var(--teal), var(--green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .hero-sub { font-size: 16px; color: rgba(255,255,255,0.65); line-height: 1.7; max-width: 560px; margin: 0 auto 36px; }
+  .hero-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .btn-primary { background: linear-gradient(135deg, var(--teal), var(--green)); color: #020f1a; padding: 14px 32px; border-radius: 99px; font-weight: 700; font-size: 15px; text-decoration: none; border: none; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; display: inline-flex; align-items: center; gap: 8px; font-family: 'Poppins', sans-serif; }
+  .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,210,255,0.35); }
+  .btn-outline { background: transparent; color: white; padding: 14px 32px; border-radius: 99px; font-weight: 600; font-size: 15px; text-decoration: none; border: 1.5px solid rgba(255,255,255,0.25); cursor: pointer; transition: border-color 0.2s, background 0.2s; display: inline-flex; align-items: center; gap: 8px; font-family: 'Poppins', sans-serif; }
+  .btn-outline:hover { border-color: var(--teal); background: rgba(0,210,255,0.08); }
+  .stats-row { display: flex; justify-content: center; gap: 48px; margin-top: 64px; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-num { font-size: 2rem; font-weight: 800; color: var(--teal); }
+  .stat-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+  .section { padding: 100px 40px; }
+  .section-inner { max-width: 1100px; margin: 0 auto; }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.15em; color: var(--teal); text-transform: uppercase; margin-bottom: 12px; }
+  .section-title { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; margin-bottom: 16px; line-height: 1.2; }
+  .section-sub { color: rgba(255,255,255,0.6); font-size: 15px; line-height: 1.7; max-width: 600px; margin-bottom: 48px; }
+
+  .problem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; perspective: 1000px; }
+  .problem-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 28px; transition: border-color 0.2s, transform 0.15s ease-out; will-change: transform; }
+  .problem-card:hover { border-color: rgba(0,210,255,0.3); }
+  .problem-icon { font-size: 32px; margin-bottom: 16px; }
+  .problem-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: var(--teal); }
+  .problem-card p { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.6; }
+
+  .how-bg { background: rgba(0,210,255,0.03); border-top: 1px solid rgba(0,210,255,0.1); border-bottom: 1px solid rgba(0,210,255,0.1); }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 32px; }
+  .step { text-align: center; }
+  .step-num { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--teal), var(--green)); color: #020f1a; font-weight: 800; font-size: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+  .step-icon { font-size: 28px; margin-bottom: 12px; }
+  .step h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .step p { font-size: 13px; color: rgba(255,255,255,0.55); line-height: 1.6; }
+
+  .impact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+  .impact-text p { color: rgba(255,255,255,0.65); font-size: 15px; line-height: 1.8; margin-bottom: 16px; }
+  .impact-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .impact-card { background: rgba(0,210,255,0.07); border: 1px solid rgba(0,210,255,0.2); border-radius: 16px; padding: 24px; text-align: center; }
+  .impact-card .big { font-size: 2rem; font-weight: 800; color: var(--teal); }
+  .impact-card .label { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 4px; }
+
+  .cta-section { background: linear-gradient(135deg, rgba(0,210,255,0.1), rgba(0,210,100,0.08)); border-top: 1px solid rgba(0,210,255,0.2); border-bottom: 1px solid rgba(0,210,255,0.2); text-align: center; padding: 100px 40px; }
+  .cta-section h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 800; margin-bottom: 16px; }
+  .cta-section p { color: rgba(255,255,255,0.6); font-size: 16px; margin-bottom: 36px; }
+
+  footer { padding: 40px; text-align: center; border-top: 1px solid rgba(255,255,255,0.07); }
+  footer p { color: rgba(255,255,255,0.4); font-size: 13px; }
+  footer .footer-logo { font-size: 18px; font-weight: 800; color: var(--teal); margin-bottom: 12px; }
+
+  @media (max-width: 768px) {
+    nav#mainNav { padding: 14px 20px; }
+    .nav-links li:not(:last-child) { display: none; }
+    .section { padding: 60px 20px; }
+    .impact-grid, .stats-row { grid-template-columns: 1fr; }
+    .stats-row { gap: 24px; }
+  }
+
+  /* ── ROLE SELECT ── */
+  .role-wrap { max-width: 900px; width: 100%; text-align: center; }
+  .role-wrap h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; margin-bottom: 10px; }
+  .role-wrap > p { color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 40px; }
+  .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 700px) { .role-grid { grid-template-columns: 1fr; } }
+  .role-grid { perspective: 1200px; }
+  .role-card { background: rgba(10,31,45,0.85); border: 1px solid rgba(0,210,255,0.2); border-radius: 20px; padding: 40px 28px; cursor: pointer; transition: transform 0.15s ease-out, border-color 0.25s, box-shadow 0.25s; text-align: center; will-change: transform; }
+  .role-card:hover { border-color: var(--teal); box-shadow: 0 16px 34px rgba(0,210,255,0.2); }
+  .role-card .icon { font-size: 44px; margin-bottom: 16px; }
+  .role-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--teal); }
+  .role-card p { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.6; }
+
+  /* ── SHARED CARD / FORM STYLES (report + admin login) ── */
+  .container { max-width: 600px; margin: 0 auto; background: rgba(10, 31, 45, 0.9); border: 1px solid rgba(0, 210, 255, 0.3); border-radius: 20px; padding: 40px; box-shadow: 0 8px 32px rgba(0, 210, 255, 0.1); }
+  .header { text-align: center; margin-bottom: 30px; }
+  .header h1 { font-size: 2rem; color: #00d2ff; margin-bottom: 10px; }
+  .header p { opacity: 0.7; font-size: 14px; }
+  .form-group { margin-bottom: 25px; }
+  .form-group label { display: block; font-size: 12px; font-weight: 600; color: #00d2ff; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 12px 15px; background: rgba(255,255,255,0.05); border: 1px solid rgba(0,210,255,0.3); border-radius: 10px; color: white; font-size: 14px; font-family: 'Poppins', sans-serif; transition: 0.3s;
+  }
+  .form-group select { color-scheme: dark; }
+  .form-group select option { background-color: #0a1f2d; color: #ffffff; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #00d2ff; background: rgba(0,210,255,0.08); box-shadow: 0 0 15px rgba(0,210,255,0.2); }
+  .form-group textarea { resize: vertical; min-height: 120px; }
+  .form-group input::placeholder, .form-group textarea::placeholder { color: rgba(255,255,255,0.4); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+  .severity-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .severity-btn { padding: 15px; border: 2px solid rgba(0,210,255,0.3); border-radius: 10px; background: transparent; color: white; cursor: pointer; transition: 0.3s; font-size: 12px; font-weight: 600; font-family: 'Poppins', sans-serif; }
+  .severity-btn:hover { border-color: #00d2ff; }
+  .severity-btn.selected { border-color: #00d2ff; background: rgba(0,210,255,0.2); }
+  .severity-low.selected { border-color: #00d264; background: rgba(0,210,100,0.2); }
+  .severity-medium.selected { border-color: #ffc800; background: rgba(255,200,0,0.2); }
+  .severity-high.selected { border-color: #ff5050; background: rgba(255,80,80,0.2); }
+  .map-container { margin: 25px 0; }
+  .map-search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .map-search-row input { flex: 1; padding: 12px 15px; background: rgba(255,255,255,0.05); border: 1px solid rgba(0,210,255,0.3); border-radius: 10px; color: white; font-size: 13px; font-family: 'Poppins', sans-serif; }
+  .map-search-row input::placeholder { color: rgba(255,255,255,0.4); }
+  .map-search-row button { padding: 12px 18px; background: rgba(0,210,255,0.15); border: 1px solid rgba(0,210,255,0.4); border-radius: 10px; color: #00d2ff; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Poppins', sans-serif; white-space: nowrap; }
+  .map-search-row button:hover { background: rgba(0,210,255,0.25); }
+  .map-search-row button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .search-suggestions { background: #0a1f2d; border: 1px solid rgba(0,210,255,0.3); border-radius: 10px; margin-top: -4px; margin-bottom: 10px; max-height: 220px; overflow-y: auto; display: none; }
+  .search-suggestions.show { display: block; }
+  .search-suggestion-item { padding: 10px 14px; font-size: 12px; color: rgba(255,255,255,0.85); cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .search-suggestion-item:last-child { border-bottom: none; }
+  .search-suggestion-item:hover { background: rgba(0,210,255,0.1); color: #00d2ff; }
+  .map-pin-wrapper { position: relative; }
+  #reportMap { height: 340px; border-radius: 10px; border: 1px solid rgba(0,210,255,0.3); }
+  .center-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 38px; pointer-events: none; z-index: 500; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.45)); }
+  .map-layer-toggle { position: absolute; top: 10px; right: 10px; z-index: 500; display: flex; background: rgba(10,31,45,0.92); border: 1px solid rgba(0,210,255,0.35); border-radius: 10px; overflow: hidden; backdrop-filter: blur(6px); box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+  .map-layer-btn { padding: 8px 14px; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.65); background: transparent; border: none; cursor: pointer; font-family: 'Poppins', sans-serif; letter-spacing: 0.03em; }
+  .map-layer-btn.active { background: linear-gradient(135deg, #00d2ff, #00d264); color: #020f1a; }
+  .map-zoom-hint { position: absolute; bottom: 10px; right: 10px; z-index: 500; background: rgba(10,31,45,0.85); border: 1px solid rgba(0,210,255,0.3); border-radius: 8px; padding: 4px 10px; font-size: 10px; color: rgba(255,255,255,0.6); pointer-events: none; }
+  .locate-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 10px; padding: 10px; background: rgba(0,210,255,0.1); border: 1px solid rgba(0,210,255,0.35); border-radius: 10px; color: #00d2ff; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif; }
+  .locate-btn:hover { background: rgba(0,210,255,0.18); }
+  .map-hint { text-align: center; font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 8px; }
+  .location-info { background: rgba(0,210,255,0.1); border: 1px solid rgba(0,210,255,0.3); border-radius: 10px; padding: 12px; margin-top: 10px; font-size: 12px; }
+  .file-input-wrapper { position: relative; overflow: hidden; }
+  .file-input-wrapper input[type="file"] { display: none; }
+  .file-btn { display: block; width: 100%; padding: 12px 15px; background: rgba(0,210,255,0.1); border: 2px dashed rgba(0,210,255,0.4); border-radius: 10px; color: #00d2ff; text-align: center; cursor: pointer; transition: 0.3s; font-size: 12px; font-weight: 600; }
+  .file-btn:hover { background: rgba(0,210,255,0.15); border-color: #00d2ff; }
+  .file-preview { margin-top: 10px; max-height: 200px; border-radius: 10px; border: 1px solid rgba(0,210,255,0.3); }
+  .submit-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #00d2ff, #00d264); border: none; border-radius: 10px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; font-family: 'Poppins', sans-serif; }
+  .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,210,255,0.3); }
+  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .alert { padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; animation: slideIn 0.3s ease; }
+  .alert.success { background: rgba(0,210,100,0.2); border: 1px solid #00d264; color: #00d264; }
+  .alert.error { background: rgba(255,80,80,0.2); border: 1px solid #ff5050; color: #ff5050; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  .loader { display: none; width: 20px; height: 20px; border: 3px solid rgba(0,210,255,0.3); border-top-color: #00d2ff; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .btn-group { display: flex; gap: 10px; align-items: center; justify-content: center; }
+
+  /* ── ADMIN LOGIN ── */
+  .login-box { background: rgba(10,31,45,0.95); border: 1px solid rgba(0,210,255,0.3); border-radius: 20px; padding: 40px; width: 100%; max-width: 400px; text-align: center; }
+  .login-box h2 { color: #00d2ff; margin-bottom: 8px; font-size: 24px; }
+  .login-box p { color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 28px; }
+  .login-input { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(0,210,255,0.3); border-radius: 10px; color: white; font-size: 14px; margin-bottom: 14px; font-family: 'Poppins', sans-serif; }
+  .login-input:focus { outline: none; border-color: #00d2ff; }
+  .login-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, #00d2ff, #00d264); border: none; border-radius: 10px; color: #020f1a; font-weight: 700; font-size: 14px; cursor: pointer; font-family: 'Poppins', sans-serif; }
+  .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .login-error { color: #ff5050; font-size: 12px; margin-bottom: 10px; min-height: 18px; }
+
+  /* ── ADMIN DASHBOARD ── */
+  .admin-header { background: rgba(10,31,45,0.95); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,210,255,0.3); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+  .admin-header h1 { font-size: 20px; color: #00d2ff; }
+  .header-right { display: flex; gap: 12px; align-items: center; }
+  .conn-badge { font-size: 12px; padding: 4px 12px; border-radius: 99px; background: rgba(255,80,80,0.15); border: 1px solid rgba(255,80,80,0.4); color: #ff5050; }
+  .conn-badge.online { background: rgba(0,210,100,0.15); border-color: rgba(0,210,100,0.4); color: #00d264; }
+  .btn { padding: 8px 16px; border: 1px solid rgba(0,210,255,0.3); border-radius: 8px; cursor: pointer; font-size: 13px; background: rgba(0,210,255,0.1); color: #00d2ff; font-family: 'Poppins', sans-serif; }
+  .btn-logout { background: rgba(255,80,80,0.1); border-color: rgba(255,80,80,0.3); color: #ff5050; }
+  .stats-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; padding: 20px 30px; }
+  @media (max-width: 900px) { .stats-bar { grid-template-columns: repeat(2, 1fr) !important; } }
+  .stat-card { background: rgba(0,210,255,0.06); padding: 20px; border-radius: 15px; text-align: center; border: 1px solid rgba(0,210,255,0.15); }
+  .stat-card .stat-num { font-size: 2rem; font-weight: 800; color: #00d2ff; }
+  .stat-card .stat-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+  .filter-bar { padding: 0 30px 16px; display: flex; gap: 10px; }
+  .filter-btn { padding: 6px 16px; border-radius: 99px; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: rgba(255,255,255,0.6); font-size: 12px; cursor: pointer; font-family: 'Poppins', sans-serif; }
+  .filter-btn.active { border-color: #00d2ff; color: #00d2ff; background: rgba(0,210,255,0.08); }
+  .main { display: grid; grid-template-columns: 1fr 420px; gap: 20px; padding: 0 30px 30px; }
+  .report-card { background: rgba(10,31,45,0.8); border: 1px solid rgba(255,255,255,0.08); padding: 16px 18px; margin-bottom: 10px; cursor: pointer; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+  .report-card:hover { border-color: rgba(0,210,255,0.3); }
+  .report-card.selected { border-color: #00d2ff; background: rgba(0,210,255,0.07); }
+  .report-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .report-desc { font-size: 11px; color: rgba(255,255,255,0.5); }
+  .report-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .badge { padding: 3px 10px; border-radius: 99px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+  .badge-pending { background: rgba(255,200,0,0.15); color: #ffc800; border: 1px solid rgba(255,200,0,0.3); }
+  .badge-inprogress { background: rgba(0,210,255,0.15); color: #00d2ff; border: 1px solid rgba(0,210,255,0.3); }
+  .badge-resolved { background: rgba(0,210,100,0.15); color: #00d264; border: 1px solid rgba(0,210,100,0.3); }
+  .badge-3 { background: rgba(255,80,80,0.15); color: #ff5050; border: 1px solid rgba(255,80,80,0.3); }
+  .badge-2 { background: rgba(255,200,0,0.15); color: #ffc800; border: 1px solid rgba(255,200,0,0.3); }
+  .badge-1 { background: rgba(0,210,100,0.15); color: #00d264; border: 1px solid rgba(0,210,100,0.3); }
+  .detail-panel { background: rgba(10,31,45,0.9); padding: 24px; border-radius: 20px; border: 1px solid rgba(0,210,255,0.15); position: sticky; top: 80px; height: fit-content; max-height: calc(100vh - 100px); overflow-y: auto; }
+  .detail-panel h3 { font-size: 16px; color: #00d2ff; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(0,210,255,0.15); }
+  .detail-row { margin-bottom: 14px; }
+  .detail-label { font-size: 10px; color: #00d2ff; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.08em; }
+  .detail-value { font-size: 13px; color: rgba(255,255,255,0.85); line-height: 1.5; }
+  #detail-map { height: 200px; width: 100%; border-radius: 12px; margin: 16px 0; border: 1px solid rgba(0,210,255,0.2); }
+  .detail-image { width: 100%; border-radius: 10px; margin-bottom: 14px; max-height: 180px; object-fit: cover; border: 1px solid rgba(0,210,255,0.2); }
+  .status-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+  .status-btn { padding: 11px 4px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 11px; font-weight: 700; font-family: 'Poppins', sans-serif; transition: 0.2s; }
+  .status-btn:hover:not(:disabled) { border-color: rgba(255,255,255,0.4); }
+  .status-btn:disabled { opacity: 0.55; cursor: default; }
+  .status-btn.active-pending { border-color: #ffc800; background: rgba(255,200,0,0.15); color: #ffc800; }
+  .status-btn.active-inprogress { border-color: #00d2ff; background: rgba(0,210,255,0.15); color: #00d2ff; }
+  .status-btn.active-resolved { border-color: #00d264; background: rgba(0,210,100,0.15); color: #00d264; }
+  .btn-delete { width: 100%; padding: 10px; background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.3); border-radius: 10px; color: #ff5050; cursor: pointer; font-size: 13px; margin-top: 8px; font-family: 'Poppins', sans-serif; }
+  .notes-input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(0,210,255,0.2); border-radius: 8px; color: white; font-size: 12px; margin: 10px 0; resize: vertical; min-height: 70px; font-family: 'Poppins', sans-serif; }
+  .notes-input:focus { outline: none; border-color: #00d2ff; }
+  .dash-alert { padding: 12px 16px; border-radius: 10px; margin-bottom: 12px; font-size: 13px; }
+  .dash-alert.error { background: rgba(255,80,80,0.15); border: 1px solid #ff5050; color: #ff5050; }
+  .dash-alert.success { background: rgba(0,210,100,0.15); border: 1px solid #00d264; color: #00d264; }
+  .empty-state { text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.4); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+  @media (max-width: 900px) { .main { grid-template-columns: 1fr; } .stats-bar { grid-template-columns: repeat(2, 1fr); } .detail-panel { position: static; } }
+</style>
+</head>
+<body>
+
+<!-- ══════════ GLOBAL TOAST (always visible, independent of any view) ══════════ -->
+<div id="globalToast" style="position:fixed; top:90px; left:50%; transform:translateX(-50%) translateY(-20px); z-index:9999; background:linear-gradient(135deg,#00d264,#00a84f); color:#fff; padding:16px 28px; border-radius:12px; font-weight:700; font-size:14px; box-shadow:0 10px 30px rgba(0,0,0,0.4); opacity:0; pointer-events:none; transition: opacity 0.3s, transform 0.3s; max-width:90vw; text-align:center;"></div>
+
+<!-- ══════════ GLOBAL NAV ══════════ -->
+<nav id="mainNav">
+  <button class="nav-logo" onclick="showView('view-landing')">🌊 OceanGuard</button>
+  <ul class="nav-links">
+    <li><a onclick="showView('view-landing'); setTimeout(()=>scrollToId('problem'),50)">The Problem</a></li>
+    <li><a onclick="showView('view-landing'); setTimeout(()=>scrollToId('how'),50)">How It Works</a></li>
+    <li><a onclick="showView('view-landing'); setTimeout(()=>scrollToId('impact'),50)">Impact</a></li>
+    <li><button class="nav-cta" onclick="showView('view-role')">Report Now →</button></li>
+  </ul>
+</nav>
+
+<!-- ══════════ VIEW: LANDING ══════════ -->
+<section class="view active" id="view-landing">
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <canvas id="hero3d"></canvas>
+    <div class="bubbles">
+      <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+      <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge">🌍 SDG 14 — Life Below Water</div>
+      <h1 class="hero-title">Protect Our Oceans<br><span class="accent">Together</span></h1>
+      <p class="hero-sub">
+        Marine pollution is destroying our oceans every single day. Oil spills, plastic waste, and industrial chemicals are killing marine life.
+        <strong style="color:white">You can help stop it</strong> — report pollution incidents instantly and alert authorities before damage spreads.
+      </p>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="showView('view-role')">🚨 Report Pollution Now</button>
+        <a class="btn-outline" onclick="scrollToId('problem')">Learn More ↓</a>
+      </div>
+      <div class="stats-row">
+        <div class="stat"><div class="stat-num">8M+</div><div class="stat-label">Tonnes of plastic per year</div></div>
+        <div class="stat"><div class="stat-num">73%</div><div class="stat-label">Pollution from land sources</div></div>
+        <div class="stat"><div class="stat-num">1000+</div><div class="stat-label">Marine species affected</div></div>
+        <div class="stat"><div class="stat-num">100K</div><div class="stat-label">Marine animals die yearly</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="problem">
+    <div class="section-inner">
+      <p class="eyebrow">The Crisis</p>
+      <h2 class="section-title">Our Oceans Are Dying 🌊</h2>
+      <p class="section-sub">Every minute, a garbage truck's worth of plastic enters our oceans. Oil spills destroy entire ecosystems. Authorities often find out too late — when the damage is already done.</p>
+      <div class="problem-grid">
+        <div class="problem-card"><div class="problem-icon">🛢️</div><h3>Oil Spills</h3><p>Oil spills coat marine animals, destroy coral reefs, and contaminate entire coastlines. One spill can devastate an ecosystem for decades.</p></div>
+        <div class="problem-card"><div class="problem-icon">🧴</div><h3>Plastic Waste</h3><p>8 million tonnes of plastic enter our oceans yearly. Microplastics now found in fish, water, and even human blood.</p></div>
+        <div class="problem-card"><div class="problem-icon">🏭</div><h3>Industrial Waste</h3><p>Toxic chemicals from factories poison marine food chains, killing fish and making seafood dangerous for human consumption.</p></div>
+        <div class="problem-card"><div class="problem-icon">⏰</div><h3>Delayed Response</h3><p>By the time authorities discover pollution, it has already spread. Early detection is the key to saving marine ecosystems.</p></div>
+        <div class="problem-card"><div class="problem-icon">🐠</div><h3>Marine Life Loss</h3><p>100,000+ marine mammals and seabirds die annually from pollution. Coral reefs are bleaching at unprecedented rates.</p></div>
+        <div class="problem-card"><div class="problem-icon">🎣</div><h3>Human Impact</h3><p>3 billion people depend on seafood. Polluted oceans threaten food security, livelihoods, and coastal communities worldwide.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section how-bg" id="how">
+    <div class="section-inner">
+      <p class="eyebrow">Simple Process</p>
+      <h2 class="section-title">How OceanGuard Works</h2>
+      <p class="section-sub">Report pollution in under 2 minutes. Your report reaches NGOs and authorities instantly.</p>
+      <div class="steps">
+        <div class="step"><div class="step-icon">📸</div><div class="step-num">1</div><h3>Take a Photo</h3><p>Capture the pollution incident on your device — clear photos help NGOs assess severity faster.</p></div>
+        <div class="step"><div class="step-icon">📍</div><div class="step-num">2</div><h3>Pin Location</h3><p>Select the exact location on the interactive map or use GPS auto-detect.</p></div>
+        <div class="step"><div class="step-icon">📋</div><div class="step-num">3</div><h3>Fill Details</h3><p>Select pollution category, severity level, and add a brief description of what you observed.</p></div>
+        <div class="step"><div class="step-icon">🚨</div><div class="step-num">4</div><h3>Alert Sent</h3><p>Your report is instantly sent to verified NGOs and environmental authorities for immediate action.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="impact">
+    <div class="section-inner">
+      <div class="impact-grid">
+        <div class="impact-text">
+          <p class="eyebrow">Our Mission</p>
+          <h2 class="section-title">Every Report Saves Lives 🐢</h2>
+          <p>OceanGuard bridges the gap between citizens and environmental organizations. When you report pollution, it goes directly to NGOs and government authorities who can act immediately.</p>
+          <p>Built for SDG 14 — Life Below Water — our platform turns every smartphone into a marine conservation tool. You don't need to be an expert. Just report what you see.</p>
+          <p style="color: var(--teal); font-weight: 600;">Together, we can protect what covers 71% of our planet. 🌊</p>
+        </div>
+        <div class="impact-stats">
+          <div class="impact-card"><div class="big">2 min</div><div class="label">Average time to file a report</div></div>
+          <div class="impact-card"><div class="big">Live</div><div class="label">Reports sync instantly to NGO dashboard</div></div>
+          <div class="impact-card"><div class="big">GPS</div><div class="label">Pinpoint accuracy with interactive maps</div></div>
+          <div class="impact-card"><div class="big">Free</div><div class="label">Open to every citizen, no cost</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <h2>See Pollution? Report It Now.</h2>
+    <p>It takes less than 2 minutes and could save an entire ecosystem.</p>
+    <button class="btn-primary" onclick="showView('view-role')">🚨 Report Pollution Now</button>
+  </section>
+
+  <footer>
+    <div class="footer-logo">🌊 OceanGuard</div>
+    <p>Marine Pollution Incident Management System · Built for SDG 14 — Life Below Water</p>
+    <p style="margin-top:8px;">In collaboration with MARS NGO</p>
+  </footer>
+</section>
+
+<!-- ══════════ VIEW: ROLE SELECT ══════════ -->
+<section class="view" id="view-role">
+  <div class="role-wrap">
+    <button class="back-link" onclick="showView('view-landing')">← Back to Home</button>
+    <h1>Continue as...</h1>
+    <p>Choose how you'd like to use OceanGuard</p>
+    <div class="role-grid">
+      <div class="role-card" onclick="showView('view-report')">
+        <div class="icon">🧍</div>
+        <h3>I'm a Citizen</h3>
+        <p>Report a pollution incident you've spotted — oil spill, plastic waste, dead marine life, or anything else harming the ocean.</p>
+      </div>
+      <div class="role-card" onclick="chooseAdmin()">
+        <div class="icon">🛡️</div>
+        <h3>I'm Admin / NGO Staff</h3>
+        <p>Sign in to review incoming reports, track severity, and mark incidents resolved from the admin dashboard.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ VIEW: CITIZEN REPORT FORM ══════════ -->
+<section class="view" id="view-report">
+  <div style="max-width:600px;margin:0 auto 14px;padding:0 20px;">
+    <button class="back-link" onclick="showView('view-role')">← Back</button>
+  </div>
+  <div class="container" style="margin-bottom:60px;">
+    <div class="header">
+      <h1>🌊 Report Incident</h1>
+      <p>Help us protect our oceans by reporting marine pollution</p>
+    </div>
+
+    <div id="reportAlerts"></div>
+
+    <div id="reportSuccess" style="display:none; text-align:center; padding: 20px 0;">
+      <div style="font-size: 64px; margin-bottom: 16px;">✅</div>
+      <h2 style="color:#00d264; font-size: 22px; margin-bottom: 10px;">Report Submitted Successfully!</h2>
+      <p style="color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6; max-width: 420px; margin: 0 auto 30px;">
+        Thank you for helping protect our oceans. Your report has been sent to our team and you'll receive an email update as it's reviewed.
+      </p>
+      <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn-primary" onclick="showView('view-landing')">🏠 Back to Home</button>
+        <button class="btn-outline" onclick="resetReportView()">📝 Submit Another Report</button>
+      </div>
+    </div>
+
+    <form id="reportForm" onsubmit="submitReport(event)">
+      <div class="form-group">
+        <label for="reportedBy">Your Name *</label>
+        <input type="text" id="reportedBy" name="reportedBy" required placeholder="Full name">
+      </div>
+      <div class="form-group">
+        <label for="userEmail">Email Address *</label>
+        <input type="email" id="userEmail" name="userEmail" required placeholder="your@email.com">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="category">Category *</label>
+          <select id="category" name="category" required>
+            <option value="">Select incident type</option>
+            <option value="Oil Spill">🛢️ Oil Spill</option>
+            <option value="Plastic Pollution">♻️ Plastic Pollution</option>
+            <option value="Chemical Waste">☠️ Chemical Waste</option>
+            <option value="Dead Fish">🐟 Dead Fish</option>
+            <option value="Algal Bloom">🌿 Algal Bloom</option>
+            <option value="Illegal Dumping">🚫 Illegal Dumping</option>
+            <option value="Other">❓ Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Severity Level *</label>
+          <div class="severity-options">
+            <button type="button" class="severity-btn severity-low" onclick="setSeverity(1, this)">🟢 Low</button>
+            <button type="button" class="severity-btn severity-medium" onclick="setSeverity(2, this)">🟡 Medium</button>
+            <button type="button" class="severity-btn severity-high" onclick="setSeverity(3, this)">🔴 High</button>
+          </div>
+          <input type="hidden" id="severity" name="severity" value="">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="location">Location Name *</label>
+        <input type="text" id="location" name="location" required placeholder="e.g., Marina Bay, Coral Reef Area">
+      </div>
+
+      <div class="map-container">
+        <label>Select Location on Map *</label>
+        <div class="map-search-row">
+          <input type="text" id="mapSearchInput" placeholder="Search a place, city or address (e.g. Pune)" autocomplete="off">
+          <button type="button" id="mapSearchBtn" onclick="searchMapLocation()">🔍 Search</button>
+        </div>
+        <div id="mapSuggestions" class="search-suggestions"></div>
+        <div class="map-pin-wrapper">
+          <div id="reportMap"></div>
+          <div class="center-pin">📍</div>
+          <div class="map-layer-toggle">
+            <button type="button" class="map-layer-btn active" id="layerStreetBtn" onclick="setMapLayer('street')">🗺️ Map</button>
+            <button type="button" class="map-layer-btn" id="layerSatBtn" onclick="setMapLayer('satellite')">🛰️ Satellite</button>
+          </div>
+          <div class="map-zoom-hint">Scroll or pinch to zoom</div>
+        </div>
+        <button type="button" class="locate-btn" onclick="locateReportMap()" id="locateBtn">🎯 Detect My Location</button>
+        <p class="map-hint">Search a place above, use GPS, or drag the map — the pin stays centered and marks your report location</p>
+        <div class="location-info">Latitude: <span id="lat">0.0000</span> | Longitude: <span id="lng">0.0000</span></div>
+      </div>
+      <input type="hidden" id="latitude" name="latitude" value="0">
+      <input type="hidden" id="longitude" name="longitude" value="0">
+
+      <div class="form-group">
+        <label for="description">Description *</label>
+        <textarea id="description" name="description" required placeholder="Describe what you observed in detail..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Photo Evidence (Optional)</label>
+        <div class="file-input-wrapper">
+          <input type="file" id="image" name="image" accept="image/*" onchange="previewImage(event)">
+          <label for="image" class="file-btn">📸 Click to upload image or drag and drop</label>
+        </div>
+        <img id="preview" class="file-preview" style="display:none;">
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">
+        <span class="btn-group">
+          <span class="loader" id="loader"></span>
+          <span id="btnText">Submit Report</span>
+        </span>
+      </button>
+    </form>
+  </div>
+</section>
+
+<!-- ══════════ VIEW: ADMIN LOGIN ══════════ -->
+<section class="view" id="view-admin-login">
+  <div class="login-box">
+    <button class="back-link" onclick="showView('view-role')">← Back</button>
+    <div style="font-size: 48px; margin-bottom: 12px;">🌊</div>
+    <h2>OceanGuard Admin</h2>
+    <p>Sign in to access the admin portal</p>
+    <div id="login-error" class="login-error"></div>
+    <input type="email" id="loginEmail" class="login-input" placeholder="Admin Email" />
+    <input type="password" id="loginPassword" class="login-input" placeholder="Password" />
+    <button class="login-btn" id="loginBtn" onclick="adminLogin()">Sign In →</button>
+    <p style="margin-top: 16px; font-size: 11px; color: rgba(255,255,255,0.3);">OceanGuard Admin Portal</p>
+  </div>
+</section>
+
+<!-- ══════════ VIEW: ADMIN DASHBOARD ══════════ -->
+<section class="view" id="view-admin-dashboard">
+  <div class="admin-header">
+    <h1>🌊 OceanGuard Admin</h1>
+    <div class="header-right">
+      <span class="conn-badge" id="conn-status">🔴 Offline</span>
+      <button class="btn" id="refresh-btn" onclick="loadReports()">🔄 Refresh</button>
+      <button class="btn btn-logout" onclick="adminLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total Reports</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-pending" style="color:#ffc800">0</div><div class="stat-label">Pending</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-inprogress" style="color:#00d2ff">0</div><div class="stat-label">In Progress</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-high" style="color:#ff5050">0</div><div class="stat-label">High Severity</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-resolved" style="color:#00d264">0</div><div class="stat-label">Resolved</div></div>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filterReports('all', this)">All</button>
+    <button class="filter-btn" onclick="filterReports('pending', this)">Pending</button>
+    <button class="filter-btn" onclick="filterReports('inprogress', this)">In Progress</button>
+    <button class="filter-btn" onclick="filterReports('resolved', this)">Resolved</button>
+    <button class="filter-btn" onclick="filterReports('high', this)">High Severity</button>
+  </div>
+
+  <div class="main">
+    <div>
+      <div id="alert-container"></div>
+      <div id="reports-list"><div class="empty-state"><div class="icon">🌊</div><p>Loading...</p></div></div>
+    </div>
+    <div class="detail-panel">
+      <h3>📋 Incident Details</h3>
+      <div id="detail-content"><div class="empty-state"><div class="icon">📋</div><p>Select a report</p></div></div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ═══════════════════════ API BASE ═══════════════════════
+   Same origin when served by the OceanGuard backend (server.js
+   now serves this file directly), otherwise fall back to the
+   local dev server on port 5000. */
+const API = (window.location.port === '5000')
+  ? '/api'
+  : 'http://localhost:5000/api';
+
+/* ═══════════════════════ GLOBAL TOAST ═══════════════════════ */
+function showGlobalToast(message, duration) {
+  const toast = document.getElementById('globalToast');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.style.opacity = '1';
+  toast.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(-20px)';
+  }, duration || 5000);
+}
+
+/* ═══════════════════════ VIEW ROUTER ═══════════════════════ */
+let reportMapInited = false;
+
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('dashboard-mode', id === 'view-admin-dashboard');
+  window.scrollTo(0, 0);
+
+  if (id === 'view-report') {
+    resetReportView();
+    if (!reportMapInited) {
+      reportMapInited = true;
+      setTimeout(initReportMap, 50);
+    }
+  }
+  if (id === 'view-admin-dashboard') {
+    loadReports();
+  }
+}
+
+function scrollToId(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+function chooseAdmin() {
+  // Always require a fresh login — never auto-continue using a saved token.
+  localStorage.removeItem('token');
+  localStorage.removeItem('role');
+  showView('view-admin-login');
+}
+
+/* ═══════════════════════ CITIZEN REPORT FORM ═══════════════════════ */
+let reportMap = null;
+let selectedSeverity = null;
+let streetLayer = null;
+let satelliteLayer = null;
+let labelsLayer = null;
+let currentMapLayer = 'street';
+
+function initReportMap() {
+  reportMap = L.map('reportMap', { zoomControl: true, attributionControl: true }).setView([20, 78], 5);
+
+  // Carto Voyager: clean, colorful, Google-Maps-like street styling with
+  // clear place labels — a big step up from plain OSM tiles.
+  streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap contributors © CARTO',
+    subdomains: 'abcd',
+    maxZoom: 20
+  });
+
+  // Esri World Imagery for satellite view, with a matching label overlay
+  // (place/road names) so satellite mode is still readable, like Google's
+  // hybrid view rather than a plain unlabeled photo.
+  satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri',
+    maxZoom: 19
+  });
+  labelsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    pane: 'shadowPane'
+  });
+
+  streetLayer.addTo(reportMap);
+
+  // The pin is a fixed overlay at the center of the map (CSS, not a Leaflet
+  // marker), so it never "detaches" — it always marks the exact map center.
+  // Dragging or zooming the map updates the coordinates live.
+  reportMap.on('move', updateCenterCoords);
+  reportMap.on('moveend', updateCenterCoords);
+
+  setTimeout(() => reportMap.invalidateSize(), 100);
+
+  // Auto-detect location as soon as the map opens
+  locateReportMap(true);
+
+  // Hide suggestions when clicking elsewhere on the form
+  document.addEventListener('click', (e) => {
+    const box = document.getElementById('mapSuggestions');
+    const input = document.getElementById('mapSearchInput');
+    if (box && input && e.target !== input && !box.contains(e.target)) {
+      box.classList.remove('show');
+      box.innerHTML = '';
+    }
+  });
+
+  // Debounced live suggestions as the user types
+  const searchInput = document.getElementById('mapSearchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', debounce(handleSearchInput, 450));
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); searchMapLocation(); }
+    });
+  }
+}
+
+function debounce(fn, delay) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+}
+
+function setMapLayer(type) {
+  if (!reportMap) return;
+  currentMapLayer = type;
+  document.getElementById('layerStreetBtn').classList.toggle('active', type === 'street');
+  document.getElementById('layerSatBtn').classList.toggle('active', type === 'satellite');
+
+  if (type === 'satellite') {
+    if (reportMap.hasLayer(streetLayer)) reportMap.removeLayer(streetLayer);
+    if (!reportMap.hasLayer(satelliteLayer)) satelliteLayer.addTo(reportMap);
+    if (!reportMap.hasLayer(labelsLayer)) labelsLayer.addTo(reportMap);
+  } else {
+    if (reportMap.hasLayer(satelliteLayer)) reportMap.removeLayer(satelliteLayer);
+    if (reportMap.hasLayer(labelsLayer)) reportMap.removeLayer(labelsLayer);
+    if (!reportMap.hasLayer(streetLayer)) streetLayer.addTo(reportMap);
+  }
+}
+
+function updateCenterCoords() {
+  if (!reportMap) return;
+  const c = reportMap.getCenter();
+  document.getElementById('lat').textContent = c.lat.toFixed(4);
+  document.getElementById('lng').textContent = c.lng.toFixed(4);
+  document.getElementById('latitude').value = c.lat;
+  document.getElementById('longitude').value = c.lng;
+}
+
+/* ── Search any place/city/address and jump the map there.
+     This is what lets a citizen report pollution far from their
+     own current location — e.g. typing "Pune" and pressing search
+     flies the map straight to Pune instead of relying on GPS. ── */
+async function handleSearchInput(e) {
+  const q = e.target.value.trim();
+  const box = document.getElementById('mapSuggestions');
+  if (q.length < 3) { box.classList.remove('show'); box.innerHTML = ''; return; }
+
+  try {
+    const results = await geocodeQuery(q, 5);
+    if (!results.length) { box.classList.remove('show'); box.innerHTML = ''; return; }
+    box.innerHTML = results.map(r =>
+      `<div class="search-suggestion-item" data-lat="${r.lat}" data-lon="${r.lon}">${r.display_name}</div>`
+    ).join('');
+    box.classList.add('show');
+    box.querySelectorAll('.search-suggestion-item').forEach(item => {
+      item.addEventListener('click', () => {
+        flyReportMapTo(parseFloat(item.dataset.lat), parseFloat(item.dataset.lon));
+        document.getElementById('mapSearchInput').value = item.textContent;
+        box.classList.remove('show');
+        box.innerHTML = '';
+      });
+    });
+  } catch (err) {
+    // Silent fail on suggestions — search button below still works
+  }
+}
+
+async function geocodeQuery(q, limit) {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=${limit || 1}&q=${encodeURIComponent(q)}`;
+  const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+  if (!res.ok) throw new Error('Geocoding failed');
+  return res.json();
+}
+
+async function searchMapLocation() {
+  const input = document.getElementById('mapSearchInput');
+  const btn = document.getElementById('mapSearchBtn');
+  const q = input.value.trim();
+  if (!q) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Searching...';
+
+  try {
+    const results = await geocodeQuery(q, 1);
+    if (!results.length) {
+      showReportAlert('Location not found. Try a more specific place name.', 'error');
+      return;
+    }
+    flyReportMapTo(parseFloat(results[0].lat), parseFloat(results[0].lon));
+    document.getElementById('mapSuggestions').classList.remove('show');
+  } catch (err) {
+    showReportAlert('Search failed. Check your connection and try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Search';
+  }
+}
+
+function flyReportMapTo(lat, lng) {
+  if (!reportMap) return;
+  reportMap.setView([lat, lng], 14);
+  updateCenterCoords();
+}
+
+function locateReportMap(silent) {
+  if (!navigator.geolocation) {
+    if (!silent) showReportAlert('Geolocation is not supported on this device.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('locateBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '🎯 Detecting...'; }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      reportMap.setView([lat, lng], 16);
+      updateCenterCoords();
+      if (btn) { btn.disabled = false; btn.textContent = '🎯 Detect My Location'; }
+    },
+    () => {
+      if (btn) { btn.disabled = false; btn.textContent = '🎯 Detect My Location'; }
+      if (!silent) showReportAlert('Could not detect your location. Please drag the map to your location instead.', 'error');
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+}
+
+function setSeverity(level, btn) {
+  document.querySelectorAll('#reportForm .severity-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('severity').value = level;
+  selectedSeverity = level;
+}
+
+function previewImage(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const preview = document.getElementById('preview');
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function showReportAlert(message, type) {
+  const alertsDiv = document.getElementById('reportAlerts');
+  alertsDiv.innerHTML = ''; 
+  const alert = document.createElement('div');
+  alert.className = `alert ${type}`;
+  alert.textContent = message;
+  alertsDiv.appendChild(alert);
+  // FIX: guarantee the alert is actually visible, even if the user has
+  // scrolled down the form (previously this could silently fail off-screen).
+  alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  showGlobalToast(message, 6000);
+  setTimeout(() => alert.remove(), 10000);
+}
+
+function resetReportView() {
+  document.getElementById('reportForm').reset();
+  document.getElementById('preview').style.display = 'none';
+  selectedSeverity = null;
+  document.querySelectorAll('#reportForm .severity-btn').forEach(btn => btn.classList.remove('selected'));
+  document.getElementById('reportSuccess').style.display = 'none';
+  document.getElementById('reportForm').style.display = 'block';
+  if (reportMap) { updateCenterCoords(); }
+  window.scrollTo(0, 0);
+}
+
+function compressImage(file, maxDim, quality) {
+  return new Promise((resolve) => {
+    if (!file || !file.type.startsWith('image/')) { resolve(file); return; }
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (e) => { img.src = e.target.result; };
+    reader.onerror = () => resolve(file);
+    img.onload = () => {
+      let { width, height } = img;
+      const max = maxDim || 1600;
+      if (width > max || height > max) {
+        if (width > height) { height = Math.round(height * (max / width)); width = max; }
+        else { width = Math.round(width * (max / height)); height = max; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        if (!blob) { resolve(file); return; }
+        resolve(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
+      }, 'image/jpeg', quality || 0.75);
+    };
+    img.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function submitReport(event) {
+  event.preventDefault();
+  console.log('[Submit] Started');
+
+  if (!selectedSeverity) {
+    showReportAlert('Please select a severity level', 'error');
+    return;
+  }
+  const lat = document.getElementById('latitude').value;
+  const lng = document.getElementById('longitude').value;
+  if (!lat || lat === '0' || !lng || lng === '0') {
+    showReportAlert('Please select a location on the map', 'error');
+    return;
+  }
+
+  const submitBtn = document.getElementById('submitBtn');
+  const loader = document.getElementById('loader');
+  const btnText = document.getElementById('btnText');
+
+  submitBtn.disabled = true;
+  loader.style.display = 'inline-block';
+  btnText.textContent = 'Preparing...';
+
+  try {
+    const formEl = document.getElementById('reportForm');
+    const formData = new FormData(formEl);
+
+    // Compress any attached photo before upload. Phone camera photos can be
+    // 3-8MB — on a slow connection (mobile hotspot) that can take a long
+    // time or fail outright, which is what made the success screen seem to
+    // "randomly" not show. A resized/compressed JPEG uploads in a fraction
+    // of the time with negligible visible quality loss.
+    const fileInput = document.getElementById('image');
+    if (fileInput.files && fileInput.files[0]) {
+      btnText.textContent = 'Compressing photo...';
+      const compressed = await compressImage(fileInput.files[0], 1600, 0.75);
+      formData.set('image', compressed, compressed.name);
+    }
+
+    console.log('[Submit] Sending to', `${API}/reports`);
+    btnText.textContent = 'Uploading... 0%';
+
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API}/reports`, true);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          btnText.textContent = `Uploading... ${pct}%`;
+        }
+      };
+
+      xhr.onload = () => {
+        console.log('[Submit] Response status:', xhr.status);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          console.log('[Submit] Success! Showing confirmation...');
+
+          const successEl = document.getElementById('reportSuccess');
+          formEl.style.display = 'none';
+          successEl.style.display = 'block';
+          void successEl.offsetHeight;
+          requestAnimationFrame(() => {
+            if (getComputedStyle(successEl).display === 'none') {
+              console.warn('[Submit] Success screen did not render on first try — retrying');
+              formEl.style.display = 'none';
+              successEl.style.display = 'block';
+            }
+          });
+
+          showGlobalToast('✅ Report submitted successfully!', 7000);
+          window.scrollTo(0, 0);
+          resolve();
+        } else {
+          console.log('[Submit] Error - response not ok');
+          let errorMsg = `Server error ${xhr.status}`;
+          try { errorMsg = JSON.parse(xhr.responseText).error || errorMsg; } catch (e) {}
+          showReportAlert('❌ Error: ' + errorMsg, 'error');
+          resolve();
+        }
+      };
+
+      xhr.onerror = () => {
+        console.error('[Submit] Network error');
+        showReportAlert('⚠️ Connection interrupted. If your report was already sent, it may still have been saved — please check with an admin before resubmitting, or try again.', 'error');
+        resolve();
+      };
+
+      xhr.ontimeout = () => {
+        console.error('[Submit] Request timed out');
+        showReportAlert('⚠️ Upload timed out — your connection may be too slow right now. Please try again.', 'error');
+        resolve();
+      };
+
+      xhr.timeout = 120000; // 2 minutes, generous for slow mobile connections
+      xhr.send(formData);
+    });
+  } catch (error) {
+    console.error('[Submit] Caught exception:', error);
+    showReportAlert('❌ Something went wrong while submitting. Please try again.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    loader.style.display = 'none';
+    btnText.textContent = 'Submit Report';
+  }
+}
+
+window.addEventListener('load', () => {
+  const fileInput = document.getElementById('image');
+  const fileBtn = document.querySelector('#view-report .file-btn');
+  if (fileBtn) {
+    fileBtn.addEventListener('dragover', e => { e.preventDefault(); fileBtn.style.background = 'rgba(0,210,255,0.2)'; });
+    fileBtn.addEventListener('dragleave', () => { fileBtn.style.background = 'rgba(0,210,255,0.1)'; });
+    fileBtn.addEventListener('drop', e => {
+      e.preventDefault();
+      fileBtn.style.background = 'rgba(0,210,255,0.1)';
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        fileInput.files = files;
+        previewImage({ target: { files } });
+      }
+    });
+  }
+});
+
+/* ═══════════════════════ ADMIN LOGIN ═══════════════════════ */
+function adminLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  const err = document.getElementById('login-error');
+
+  if (!email || !password) { err.textContent = 'Enter email and password'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+  err.textContent = '';
+
+  fetch(`${API}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  })
+  .then(res => res.json().then(d => ({ ok: res.ok, d })))
+  .then(r => {
+    if (r.ok && r.d.token) {
+      if (r.d.role !== 'admin') {
+        err.textContent = 'This account does not have admin access.';
+        return;
+      }
+      localStorage.setItem('token', r.d.token);
+      localStorage.setItem('role', r.d.role);
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPassword').value = '';
+      showView('view-admin-dashboard');
+    } else {
+      err.textContent = r.d.error || 'Invalid credentials';
+    }
+  })
+  .catch(() => { err.textContent = 'Connection error! Is the server running?'; })
+  .finally(() => { btn.disabled = false; btn.textContent = 'Sign In →'; });
+}
+
+document.getElementById('loginPassword').addEventListener('keypress', e => {
+  if (e.key === 'Enter') adminLogin();
+});
+
+function adminLogout() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('role');
+  showView('view-admin-login');
+}
+
+/* ═══════════════════════ ADMIN DASHBOARD ═══════════════════════ */
+let allReports = [];
+let detailMap = null;
+let currentFilter = 'all';
+
+function showDashAlert(msg, type) {
+  const c = document.getElementById('alert-container');
+  c.innerHTML = `<div class="dash-alert ${type || 'error'}">${msg}</div>`;
+  setTimeout(() => { c.innerHTML = ''; }, 4000);
+}
+
+function loadReports() {
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Loading...';
+
+  fetch(`${API}/reports`, {
+    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+  })
+  .then(res => {
+    if (res.status === 401 || res.status === 403) { adminLogout(); return null; }
+    if (!res.ok) throw new Error('Failed to load');
+    return res.json();
+  })
+  .then(data => {
+    if (!data) return;
+    allReports = data;
+    const badge = document.getElementById('conn-status');
+    badge.textContent = '🟢 Connected';
+    badge.className = 'conn-badge online';
+    updateStats();
+    filterReports(currentFilter);
+  })
+  .catch(e => {
+    document.getElementById('conn-status').textContent = '🔴 Offline';
+    document.getElementById('conn-status').className = 'conn-badge';
+    showDashAlert('Failed to load: ' + e.message);
+  })
+  .finally(() => { btn.disabled = false; btn.textContent = '🔄 Refresh'; });
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = allReports.length;
+  document.getElementById('stat-pending').textContent = allReports.filter(r => r.status === 'pending').length;
+  document.getElementById('stat-inprogress').textContent = allReports.filter(r => r.status === 'in_progress').length;
+  document.getElementById('stat-high').textContent = allReports.filter(r => r.severity === 3).length;
+  document.getElementById('stat-resolved').textContent = allReports.filter(r => r.status === 'resolved').length;
+}
+
+function filterReports(type, btn) {
+  currentFilter = type;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  let filtered = allReports;
+  if (type === 'pending') filtered = allReports.filter(r => r.status === 'pending');
+  else if (type === 'inprogress') filtered = allReports.filter(r => r.status === 'in_progress');
+  else if (type === 'resolved') filtered = allReports.filter(r => r.status === 'resolved');
+  else if (type === 'high') filtered = allReports.filter(r => r.severity === 3);
+
+  renderReports(filtered);
+}
+
+function getSevLabel(s) {
+  if (s === 3) return '<span class="badge badge-3">🔴 High</span>';
+  if (s === 2) return '<span class="badge badge-2">🟡 Medium</span>';
+  return '<span class="badge badge-1">🟢 Low</span>';
+}
+
+function getStatusLabel(s) {
+  if (s === 'resolved') return '<span class="badge badge-resolved">✅ Resolved</span>';
+  if (s === 'in_progress') return '<span class="badge badge-inprogress">🔎 In Progress</span>';
+  return '<span class="badge badge-pending">⏳ Pending</span>';
+}
+
+function renderReports(reports) {
+  const list = document.getElementById('reports-list');
+  if (!reports.length) {
+    list.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No reports found</p></div>';
+    return;
+  }
+  let html = '';
+  reports.forEach(r => {
+    const id = r.id || r._id;
+    html += `<div class="report-card" id="card-${id}" onclick="showDetail('${id}')">
+      <div>
+        <div class="report-title">${r.category || 'Unknown'}</div>
+        <div class="report-desc">${r.description ? r.description.substring(0,60) + '...' : ''}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;">By ${r.reportedBy || 'Anonymous'} · ${r.location || ''}</div>
+      </div>
+      <div class="report-meta">${getSevLabel(r.severity)}${getStatusLabel(r.status)}</div>
+    </div>`;
+  });
+  list.innerHTML = html;
+}
+
+function showDetail(id) {
+  const r = allReports.find(rep => (rep.id || rep._id) === id);
+  if (!r) return;
+
+  document.querySelectorAll('.report-card').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById('card-' + id);
+  if (card) card.classList.add('selected');
+
+  const lat = r.coordinates ? r.coordinates.latitude : r.latitude;
+  const lng = r.coordinates ? r.coordinates.longitude : r.longitude;
+  const dateStr = r.createdAt ? new Date(r.createdAt._seconds ? r.createdAt._seconds * 1000 : r.createdAt).toLocaleString() : 'Unknown';
+  const imgUrl = r.imageUrl ? (API.startsWith('/') ? r.imageUrl : 'http://localhost:5000' + r.imageUrl) : null;
+
+  let html = '';
+  if (imgUrl) html += `<img src="${imgUrl}" class="detail-image" onerror="this.style.display='none'">`;
+
+  html += `<div class="detail-row"><div class="detail-label">Reported By</div><div class="detail-value">${r.reportedBy || 'Anonymous'}${r.userEmail ? ' (' + r.userEmail + ')' : ''}</div></div>`;
+  html += `<div class="detail-row"><div class="detail-label">Category</div><div class="detail-value">${r.category || 'N/A'}</div></div>`;
+  html += `<div class="detail-row"><div class="detail-label">Severity</div><div class="detail-value">${getSevLabel(r.severity)}</div></div>`;
+  html += `<div class="detail-row"><div class="detail-label">Status</div><div class="detail-value">${getStatusLabel(r.status)}</div></div>`;
+  html += `<div class="detail-row"><div class="detail-label">Location</div><div class="detail-value">${r.location || 'N/A'}</div></div>`;
+  html += `<div class="detail-row"><div class="detail-label">Description</div><div class="detail-value">${r.description || 'N/A'}</div></div>`;
+  html += `<div class="detail-row"><div class="detail-label">Date</div><div class="detail-value">${dateStr}</div></div>`;
+
+  if (lat && lng) html += `<div id="detail-map"></div>`;
+
+  html += `<textarea class="notes-input" id="adminNotes" placeholder="Add notes...">${r.adminNotes || ''}</textarea>`;
+
+  const st = r.status || 'pending';
+  html += `<div class="status-actions">
+    <button class="status-btn ${st === 'pending' ? 'active-pending' : ''}" ${st === 'pending' ? 'disabled' : ''} onclick="updateReportStatus('${id}', 'pending')">⏳ Pending</button>
+    <button class="status-btn ${st === 'in_progress' ? 'active-inprogress' : ''}" ${st === 'in_progress' ? 'disabled' : ''} onclick="updateReportStatus('${id}', 'in_progress')">🔎 In Progress</button>
+    <button class="status-btn ${st === 'resolved' ? 'active-resolved' : ''}" ${st === 'resolved' ? 'disabled' : ''} onclick="updateReportStatus('${id}', 'resolved')">✅ Resolved</button>
+  </div>`;
+  html += `<button class="btn-delete" onclick="deleteReport('${id}')">🗑️ Delete Report</button>`;
+
+  document.getElementById('detail-content').innerHTML = html;
+
+  if (lat && lng) {
+    setTimeout(() => {
+      if (detailMap) { detailMap.remove(); detailMap = null; }
+      detailMap = L.map('detail-map').setView([parseFloat(lat), parseFloat(lng)], 13);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap contributors © CARTO',
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(detailMap);
+      L.marker([parseFloat(lat), parseFloat(lng)]).addTo(detailMap);
+    }, 100);
+  }
+}
+
+function updateReportStatus(id, status) {
+  const notes = document.getElementById('adminNotes') ? document.getElementById('adminNotes').value : '';
+  document.querySelectorAll('.status-btn').forEach(b => b.disabled = true);
+
+  fetch(`${API}/reports/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': 'Bearer ' + localStorage.getItem('token'),
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ status, adminNotes: notes })
+  })
+  .then(res => {
+    if (res.status === 401 || res.status === 403) { showDashAlert('Session expired. Login again.'); adminLogout(); return null; }
+    if (!res.ok) throw new Error('Update failed');
+    return res.json();
+  })
+  .then(data => {
+    if (!data) return;
+    const label = status === 'resolved' ? 'resolved' : status === 'in_progress' ? 'marked in progress' : 'reset to pending';
+    const emailNote = (status === 'resolved' || status === 'in_progress') ? ' The reporter has been emailed.' : '';
+    showDashAlert(`✅ Report ${label}!${emailNote}`, 'success');
+    loadReports();
+    setTimeout(() => showDetail(id), 500);
+  })
+  .catch(e => {
+    showDashAlert('❌ ' + e.message);
+    document.querySelectorAll('.status-btn').forEach(b => b.disabled = false);
+  });
+}
+
+function deleteReport(id) {
+  if (!confirm('Delete this report permanently?')) return;
+
+  fetch(`${API}/reports/${id}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('Delete failed');
+    return res.json();
+  })
+  .then(() => {
+    showDashAlert('✅ Report deleted!', 'success');
+    document.getElementById('detail-content').innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>Select a report</p></div>';
+    loadReports();
+  })
+  .catch(e => showDashAlert('❌ ' + e.message));
+}
+
+/* ═══════════════════════ 3D HERO OCEAN (Three.js) ═══════════════════════ */
+function initHero3D() {
+  const canvas = document.getElementById('hero3d');
+  if (!canvas || typeof THREE === 'undefined') return;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(55, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+  camera.position.set(0, 14, 24);
+  camera.lookAt(0, -2, 0);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+
+  // Wireframe "ocean surface" that ripples in 3D
+  const geo = new THREE.PlaneGeometry(56, 36, 46, 30);
+  geo.rotateX(-Math.PI / 2.3);
+  const mat = new THREE.MeshBasicMaterial({ color: 0x00d2ff, wireframe: true, transparent: true, opacity: 0.22 });
+  const ocean = new THREE.Mesh(geo, mat);
+  scene.add(ocean);
+
+  const posAttr = geo.attributes.position;
+  const basePositions = Float32Array.from(posAttr.array);
+
+  // Rising bubble particles
+  const count = 90;
+  const particleGeo = new THREE.BufferGeometry();
+  const particlePos = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    particlePos[i * 3] = (Math.random() - 0.5) * 50;
+    particlePos[i * 3 + 1] = Math.random() * 18 - 6;
+    particlePos[i * 3 + 2] = (Math.random() - 0.5) * 34;
+  }
+  particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+  const particleMat = new THREE.PointsMaterial({ color: 0x00d264, size: 0.35, transparent: true, opacity: 0.6 });
+  const particles = new THREE.Points(particleGeo, particleMat);
+  scene.add(particles);
+
+  let running = true;
+  let t = 0;
+
+  function animate() {
+    requestAnimationFrame(animate);
+    if (!running) return;
+    t += 0.012;
+
+    const arr = posAttr.array;
+    for (let i = 0; i < arr.length; i += 3) {
+      const x = basePositions[i], z = basePositions[i + 2];
+      arr[i + 1] = Math.sin(x * 0.15 + t) * 0.9 + Math.cos(z * 0.15 + t) * 0.9;
+    }
+    posAttr.needsUpdate = true;
+
+    const pArr = particleGeo.attributes.position.array;
+    for (let i = 1; i < pArr.length; i += 3) {
+      pArr[i] += 0.025;
+      if (pArr[i] > 12) pArr[i] = -6;
+    }
+    particleGeo.attributes.position.needsUpdate = true;
+
+    ocean.rotation.z = Math.sin(t * 0.08) * 0.04;
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // Only spend cycles animating while the landing view is actually visible
+  const landingSection = document.getElementById('view-landing');
+  const observer = new MutationObserver(() => {
+    running = landingSection.classList.contains('active');
+  });
+  observer.observe(landingSection, { attributes: true, attributeFilter: ['class'] });
+
+  window.addEventListener('resize', () => {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  });
+}
+
+/* ═══════════════════════ 3D TILT ON HOVER (role + problem cards) ═══════════════════════ */
+function attach3DTilt(selector, intensity) {
+  document.querySelectorAll(selector).forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const r = card.getBoundingClientRect();
+      const x = e.clientX - r.left, y = e.clientY - r.top;
+      const rx = ((y / r.height) - 0.5) * -intensity;
+      const ry = ((x / r.width) - 0.5) * intensity;
+      card.style.transform = `perspective(700px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-4px)`;
+    });
+    card.addEventListener('mouseleave', () => { card.style.transform = ''; });
+  });
+}
+
+window.addEventListener('load', () => {
+  initHero3D();
+  attach3DTilt('.role-card', 9);
+  attach3DTilt('.problem-card', 5);
+});
+</script>
+</body>
+</html>
