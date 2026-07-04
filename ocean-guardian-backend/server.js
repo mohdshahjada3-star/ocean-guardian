@@ -9,6 +9,8 @@ const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const serviceAccount = require(path.join(__dirname, 'serviceAccountKey.json'));
 const app = express();
@@ -30,6 +32,24 @@ admin.initializeApp({
 const db = admin.firestore();
 
 console.log("✅ Firebase Connected");
+
+// ================= CLOUDINARY =================
+// Report images are uploaded here instead of local disk, so they survive
+// server restarts/redeploys on hosts with ephemeral filesystems (e.g. Render
+// free tier). Set these three in .env — get them from your Cloudinary
+// dashboard homepage.
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+  console.log("✅ Cloudinary Connected");
+} else {
+  console.log("⚠️  Cloudinary not configured — set CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET in .env, image uploads will fail");
+}
 
 // ================= EMAIL NOTIFICATIONS =================
 // Emails the reporter when an admin moves their report to "in_progress"
@@ -101,7 +121,8 @@ app.use(express.urlencoded({
   limit: "50mb"
 }));
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// NOTE: local /uploads static route removed — images now live on Cloudinary
+// and are served from Cloudinary's own URLs, not from this server.
 
 // Serve the merged single-page frontend (index.html) from the same server,
 // so the site + API live on one origin — no separate frontend host needed.
@@ -115,19 +136,15 @@ app.use(express.static(path.join(__dirname, "..", "ocean-guardian-frontend"), {
   }
 }));
 
-// ================= MULTER =================
+// ================= MULTER (CLOUDINARY STORAGE) =================
+// Uploaded report images are streamed straight to Cloudinary instead of
+// being written to local disk, so they survive server restarts/redeploys.
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, "uploads");
-    if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-},
-
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "oceanguard-reports",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"]
   }
 });
 
@@ -360,8 +377,12 @@ app.post("/api/reports", upload.single("image"), async (req, res) => {
       });
     }
 
+    // req.file.path is the full hosted Cloudinary URL (e.g.
+    // https://res.cloudinary.com/.../oceanguard-reports/xyz.jpg) when an
+    // image was uploaded, since multer-storage-cloudinary uploads the file
+    // and puts the resulting secure URL here.
     const imageUrl = req.file
-      ? `/uploads/${req.file.filename}`
+      ? req.file.path
       : null;
 
     const report = {
