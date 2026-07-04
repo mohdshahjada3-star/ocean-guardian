@@ -1151,7 +1151,14 @@ function showDetail(id) {
   const lat = r.coordinates ? r.coordinates.latitude : r.latitude;
   const lng = r.coordinates ? r.coordinates.longitude : r.longitude;
   const dateStr = r.createdAt ? new Date(r.createdAt._seconds ? r.createdAt._seconds * 1000 : r.createdAt).toLocaleString() : 'Unknown';
-  const imgUrl = r.imageUrl ? (API.startsWith('/') ? r.imageUrl : 'http://localhost:5000' + r.imageUrl) : null;
+
+  // FIX: r.imageUrl is now a full Cloudinary URL (e.g.
+  // https://res.cloudinary.com/.../oceanguard-reports/xyz.jpg), so it should
+  // be used as-is. The old logic here was written for the previous local-disk
+  // setup (relative paths like /uploads/123.png needing a localhost prefix)
+  // and was mangling/misapplying that prefix to the new absolute Cloudinary
+  // URLs, which is why images stopped appearing in the admin portal.
+  const imgUrl = r.imageUrl || null;
 
   let html = '';
   if (imgUrl) html += `<img src="${imgUrl}" class="detail-image" onerror="this.style.display='none'">`;
