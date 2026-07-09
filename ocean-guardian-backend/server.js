@@ -363,17 +363,18 @@ app.post("/api/reports", upload.single("image"), async (req, res) => {
       userEmail
     } = req.body;
 
+    // Only email, location, map coordinates, and a photo are true blockers —
+    // everything else (name, category, severity, description) is a nice-to-have
+    // so the form stays quick and inviting to fill out.
     if (
-      !reportedBy ||
-      !category ||
-      !severity ||
-      !description ||
+      !userEmail ||
       !location ||
       !latitude ||
-      !longitude
+      !longitude ||
+      !req.file
     ) {
       return res.status(400).json({
-        error: "All fields are required"
+        error: "Email, location and a photo are required"
       });
     }
 
@@ -381,17 +382,15 @@ app.post("/api/reports", upload.single("image"), async (req, res) => {
     // https://res.cloudinary.com/.../oceanguard-reports/xyz.jpg) when an
     // image was uploaded, since multer-storage-cloudinary uploads the file
     // and puts the resulting secure URL here.
-    const imageUrl = req.file
-      ? req.file.path
-      : null;
+    const imageUrl = req.file.path;
 
     const report = {
       userId: "guest",
-      reportedBy,
+      reportedBy: reportedBy || "Anonymous",
       userEmail,
-      category,
-      severity: parseInt(severity),
-      description,
+      category: category || "Other",
+      severity: severity ? parseInt(severity) : 1,
+      description: description || "",
       location,
       coordinates: {
         latitude: parseFloat(latitude),

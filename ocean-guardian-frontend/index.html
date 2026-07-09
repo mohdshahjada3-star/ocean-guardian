@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -417,8 +418,8 @@
 
     <form id="reportForm" onsubmit="submitReport(event)">
       <div class="form-group">
-        <label for="reportedBy">Your Name *</label>
-        <input type="text" id="reportedBy" name="reportedBy" required placeholder="Full name">
+        <label for="reportedBy">Your Name</label>
+        <input type="text" id="reportedBy" name="reportedBy" placeholder="Full name">
       </div>
       <div class="form-group">
         <label for="userEmail">Email Address *</label>
@@ -426,8 +427,8 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label for="category">Category *</label>
-          <select id="category" name="category" required>
+          <label for="category">Category</label>
+          <select id="category" name="category">
             <option value="">Select incident type</option>
             <option value="Oil Spill">🛢️ Oil Spill</option>
             <option value="Plastic Pollution">♻️ Plastic Pollution</option>
@@ -439,7 +440,7 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Severity Level *</label>
+          <label>Severity Level</label>
           <div class="severity-options">
             <button type="button" class="severity-btn severity-low" onclick="setSeverity(1, this)">🟢 Low</button>
             <button type="button" class="severity-btn severity-medium" onclick="setSeverity(2, this)">🟡 Medium</button>
@@ -478,14 +479,14 @@
       <input type="hidden" id="longitude" name="longitude" value="0">
 
       <div class="form-group">
-        <label for="description">Description *</label>
-        <textarea id="description" name="description" required placeholder="Describe what you observed in detail..."></textarea>
+        <label for="description">Description</label>
+        <textarea id="description" name="description" placeholder="Describe what you observed in detail..."></textarea>
       </div>
 
       <div class="form-group">
-        <label>Photo Evidence (Optional)</label>
+        <label>Photo Evidence *</label>
         <div class="file-input-wrapper">
-          <input type="file" id="image" name="image" accept="image/*" onchange="previewImage(event)">
+          <input type="file" id="image" name="image" accept="image/*" required onchange="previewImage(event)">
           <label for="image" class="file-btn">📸 Click to upload image or drag and drop</label>
         </div>
         <img id="preview" class="file-preview" style="display:none;">
@@ -875,15 +876,21 @@ async function submitReport(event) {
   event.preventDefault();
   console.log('[Submit] Started');
 
-  if (!selectedSeverity) {
-    showReportAlert('Please select a severity level', 'error');
-    return;
-  }
   const lat = document.getElementById('latitude').value;
   const lng = document.getElementById('longitude').value;
   if (!lat || lat === '0' || !lng || lng === '0') {
     showReportAlert('Please select a location on the map', 'error');
     return;
+  }
+  const imageField = document.getElementById('image');
+  if (!imageField.files || !imageField.files[0]) {
+    showReportAlert('Please attach a photo of the incident', 'error');
+    return;
+  }
+  // Severity is a nice-to-have signal, not a blocker — default quietly to
+  // Low if the user skipped picking one so the submit never gets stuck.
+  if (!selectedSeverity) {
+    document.getElementById('severity').value = '1';
   }
 
   const submitBtn = document.getElementById('submitBtn');
