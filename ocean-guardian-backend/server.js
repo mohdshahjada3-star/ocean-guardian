@@ -51,6 +51,99 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
   console.log("⚠️  Cloudinary not configured — set CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET in .env, image uploads will fail");
 }
 
+// ================= GROQ (GPT-OSS) ORG SUGGESTIONS =================
+// For every report, we ask GPT-OSS (hosted for free/fast inference on Groq)
+// to suggest real, well-known organizations relevant to the incident and,
+// only if it's confident, their public social handles — so admins (and the
+// reporter) know who might be worth tagging or notifying.
+//
+// Get a free key at https://console.groq.com/keys and set GROQ_API_KEY in
+// .env. Without a key, suggestions are simply skipped (status: "unavailable")
+// and the rest of the app works exactly as before.
+
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
+
+if (GROQ_API_KEY) {
+  console.log(`✅ Groq (GPT-OSS) connected — model: ${GROQ_MODEL}`);
+} else {
+  console.log("⚠️  GROQ_API_KEY not set — organization suggestions will be skipped");
+}
+
+// Asks GPT-OSS for up to 5 real organizations relevant to this incident.
+// The model is explicitly told to omit a handle rather than guess one, but
+// this is still a starting point, not a verified directory — the frontend
+// always labels it "AI-suggested" and nothing gets auto-posted anywhere.
+async function suggestOrganizations(category, location, description) {
+  if (!GROQ_API_KEY) {
+    return { status: "unavailable", organizations: [], updatedAt: new Date().toISOString() };
+  }
+
+  const userPrompt = `Incident category: ${category || "Unspecified"}
+Location: ${location || "Not specified"}
+Description: ${description || "N/A"}
+
+Suggest up to 5 real, well-known organizations (NGOs, coast guards, government environmental bodies, or marine research groups) relevant to responding to or being notified about this marine pollution incident. Prefer organizations local to the given location when possible, alongside major international ones.`;
+
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        temperature: 0.3,
+        max_tokens: 2048,
+        // gpt-oss "thinks" before answering, and those reasoning tokens eat
+        // into the same budget as the final answer. Keeping reasoning low
+        // leaves enough room for the model to actually finish the JSON
+        // instead of getting cut off mid-answer (which is what was causing
+        // the "Unexpected end of JSON input" failures).
+        reasoning_effort: "low",
+        messages: [
+          {
+            role: "system",
+            content: "You are a research assistant for a marine pollution reporting platform. You suggest real, well-known organizations and, only if you are genuinely confident, their public social media handles. Never invent or guess a handle — use null if you are not sure. Respond with ONLY raw JSON, no markdown fences, no commentary, in exactly this shape: {\"organizations\":[{\"name\":\"string\",\"type\":\"NGO | Government | Coast Guard | Research | Local Authority\",\"reason\":\"one short sentence\",\"handles\":{\"twitter\":\"@handle or null\",\"instagram\":\"@handle or null\"}}]}"
+          },
+          { role: "user", content: userPrompt }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      console.error("Groq API error:", response.status, await response.text());
+      return { status: "failed", organizations: [], updatedAt: new Date().toISOString() };
+    }
+
+    const data = await response.json();
+    const raw = data.choices?.[0]?.message?.content || "";
+    let cleaned = raw.replace(/```json|```/g, "").trim();
+
+    if (!cleaned) {
+      console.error("suggestOrganizations: empty response from Groq (finish_reason:", data.choices?.[0]?.finish_reason, ")");
+      return { status: "failed", organizations: [], updatedAt: new Date().toISOString() };
+    }
+
+    // Some models still add a stray sentence before/after the JSON despite
+    // instructions — pull out just the {...} block rather than fail on it.
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) cleaned = jsonMatch[0];
+
+    const parsed = JSON.parse(cleaned);
+
+    return {
+      status: "ready",
+      organizations: Array.isArray(parsed.organizations) ? parsed.organizations.slice(0, 5) : [],
+      updatedAt: new Date().toISOString()
+    };
+  } catch (err) {
+    console.error("suggestOrganizations failed:", err.message);
+    return { status: "failed", organizations: [], updatedAt: new Date().toISOString() };
+  }
+}
+
 // ================= EMAIL NOTIFICATIONS =================
 // Emails the reporter when an admin moves their report to "in_progress"
 // or "resolved". Configure EMAIL_USER / EMAIL_PASS in .env to enable —
@@ -363,18 +456,17 @@ app.post("/api/reports", upload.single("image"), async (req, res) => {
       userEmail
     } = req.body;
 
-    // Only email, location, map coordinates, and a photo are true blockers —
-    // everything else (name, category, severity, description) is a nice-to-have
-    // so the form stays quick and inviting to fill out.
+    // Name, email, category, and a photo are the true blockers now — location
+    // and the map pin are a nice-to-have so a citizen can still file a report
+    // even if they can't pin the exact spot or don't know its name.
     if (
       !userEmail ||
-      !location ||
-      !latitude ||
-      !longitude ||
+      !reportedBy ||
+      !category ||
       !req.file
     ) {
       return res.status(400).json({
-        error: "Email, location and a photo are required"
+        error: "Name, email, category and a photo are required"
       });
     }
 
@@ -386,18 +478,19 @@ app.post("/api/reports", upload.single("image"), async (req, res) => {
 
     const report = {
       userId: "guest",
-      reportedBy: reportedBy || "Anonymous",
+      reportedBy,
       userEmail,
-      category: category || "Other",
+      category,
       severity: severity ? parseInt(severity) : 1,
       description: description || "",
-      location,
-      coordinates: {
+      location: location || "Not specified",
+      coordinates: (latitude && longitude) ? {
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude)
-      },
+      } : null,
       imageUrl,
       status: "pending",
+      orgSuggestions: { status: "pending", organizations: [], updatedAt: null },
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -412,10 +505,56 @@ app.post("/api/reports", upload.single("image"), async (req, res) => {
       }
     });
 
+    // Fire-and-forget: the citizen shouldn't have to wait on an LLM call to
+    // submit their report. We update the doc in the background once the
+    // suggestions are ready; the confirmation screen and admin panel both
+    // poll GET /api/reports/:id/organizations to pick it up.
+    suggestOrganizations(report.category, report.location, report.description)
+      .then(result => docRef.update({ orgSuggestions: result }))
+      .catch(err => console.error("Org suggestion background update failed:", err.message));
+
   } catch (err) {
     res.status(500).json({
       error: err.message
     });
+  }
+});
+
+// ================= GET ORG SUGGESTIONS =================
+// Public — the citizen confirmation screen polls this right after
+// submitting (no login yet at that point), and the admin panel uses it too.
+// Only exposes the suggestion list, not the rest of the report.
+
+app.get("/api/reports/:id/organizations", async (req, res) => {
+  try {
+    const doc = await db.collection("reports").doc(req.params.id).get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: "Report not found" });
+    }
+    res.json(doc.data().orgSuggestions || { status: "pending", organizations: [], updatedAt: null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ================= REFRESH ORG SUGGESTIONS =================
+// Admin-only — lets an admin force a fresh GPT-OSS lookup for a report,
+// e.g. if the first attempt failed or the report was edited.
+
+app.post("/api/reports/:id/organizations/refresh", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const docRef = db.collection("reports").doc(req.params.id);
+    const doc = await docRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: "Report not found" });
+    }
+
+    const data = doc.data();
+    const result = await suggestOrganizations(data.category, data.location, data.description);
+    await docRef.update({ orgSuggestions: result });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

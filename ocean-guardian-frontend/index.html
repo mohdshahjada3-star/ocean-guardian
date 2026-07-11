@@ -410,6 +410,7 @@
       <p style="color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6; max-width: 420px; margin: 0 auto 30px;">
         Thank you for helping protect our oceans. Your report has been sent to our team and you'll receive an email update as it's reviewed.
       </p>
+      <div id="citizenOrgSuggestions" style="display:none;"></div>
       <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
         <button class="btn-primary" onclick="showView('view-landing')">🏠 Back to Home</button>
         <button class="btn-outline" onclick="resetReportView()">📝 Submit Another Report</button>
@@ -418,8 +419,8 @@
 
     <form id="reportForm" onsubmit="submitReport(event)">
       <div class="form-group">
-        <label for="reportedBy">Your Name</label>
-        <input type="text" id="reportedBy" name="reportedBy" placeholder="Full name">
+        <label for="reportedBy">Your Name *</label>
+        <input type="text" id="reportedBy" name="reportedBy" required placeholder="Full name">
       </div>
       <div class="form-group">
         <label for="userEmail">Email Address *</label>
@@ -427,8 +428,8 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label for="category">Category</label>
-          <select id="category" name="category">
+          <label for="category">Category *</label>
+          <select id="category" name="category" required>
             <option value="">Select incident type</option>
             <option value="Oil Spill">🛢️ Oil Spill</option>
             <option value="Plastic Pollution">♻️ Plastic Pollution</option>
@@ -450,15 +451,10 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <label for="location">Location Name *</label>
-        <input type="text" id="location" name="location" required placeholder="e.g., Marina Bay, Coral Reef Area">
-      </div>
-
       <div class="map-container">
-        <label>Select Location on Map *</label>
+        <label for="location">Location</label>
         <div class="map-search-row">
-          <input type="text" id="mapSearchInput" placeholder="Search a place, city or address (e.g. Pune)" autocomplete="off">
+          <input type="text" id="location" name="location" placeholder="Search a place, city or address (e.g. Pune)" autocomplete="off">
           <button type="button" id="mapSearchBtn" onclick="searchMapLocation()">🔍 Search</button>
         </div>
         <div id="mapSuggestions" class="search-suggestions"></div>
@@ -472,7 +468,7 @@
           <div class="map-zoom-hint">Scroll or pinch to zoom</div>
         </div>
         <button type="button" class="locate-btn" onclick="locateReportMap()" id="locateBtn">🎯 Detect My Location</button>
-        <p class="map-hint">Search a place above, use GPS, or drag the map — the pin stays centered and marks your report location</p>
+        <p class="map-hint">Search, tap Detect My Location, or drag the map — your location fills in above automatically</p>
         <div class="location-info">Latitude: <span id="lat">0.0000</span> | Longitude: <span id="lng">0.0000</span></div>
       </div>
       <input type="hidden" id="latitude" name="latitude" value="0">
@@ -659,7 +655,7 @@ function initReportMap() {
   // Hide suggestions when clicking elsewhere on the form
   document.addEventListener('click', (e) => {
     const box = document.getElementById('mapSuggestions');
-    const input = document.getElementById('mapSearchInput');
+    const input = document.getElementById('location');
     if (box && input && e.target !== input && !box.contains(e.target)) {
       box.classList.remove('show');
       box.innerHTML = '';
@@ -667,7 +663,7 @@ function initReportMap() {
   });
 
   // Debounced live suggestions as the user types
-  const searchInput = document.getElementById('mapSearchInput');
+  const searchInput = document.getElementById('location');
   if (searchInput) {
     searchInput.addEventListener('input', debounce(handleSearchInput, 450));
     searchInput.addEventListener('keydown', (e) => {
@@ -698,6 +694,40 @@ function setMapLayer(type) {
   }
 }
 
+/* ── Keeps the "Location Name" field in sync with wherever the map is
+     actually pointed — whenever a citizen picks a spot (search, suggestion
+     click, or Detect My Location), we fill it in automatically instead of
+     leaving it for them to type by hand. They can still edit it after. ── */
+function shortenDisplayName(displayName) {
+  if (!displayName) return '';
+  return displayName.split(',').slice(0, 2).map(s => s.trim()).join(', ');
+}
+
+function setLocationNameField(name) {
+  if (!name) return;
+  const field = document.getElementById('location');
+  if (field) field.value = name;
+}
+
+async function reverseGeocode(lat, lng) {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`;
+  const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+  if (!res.ok) throw new Error('Reverse geocoding failed');
+  return res.json();
+}
+
+// Builds a short "Area, City" style name from Nominatim's structured address
+// instead of dumping the full verbose display_name into the field.
+function shortLocationName(data) {
+  if (!data) return '';
+  const a = data.address || {};
+  const area = a.suburb || a.neighbourhood || a.village || a.town || a.city_district || '';
+  const city = a.city || a.town || a.county || '';
+  const parts = [area, city].filter(Boolean);
+  if (parts.length) return parts.join(', ');
+  return shortenDisplayName(data.display_name);
+}
+
 function updateCenterCoords() {
   if (!reportMap) return;
   const c = reportMap.getCenter();
@@ -726,7 +756,7 @@ async function handleSearchInput(e) {
     box.querySelectorAll('.search-suggestion-item').forEach(item => {
       item.addEventListener('click', () => {
         flyReportMapTo(parseFloat(item.dataset.lat), parseFloat(item.dataset.lon));
-        document.getElementById('mapSearchInput').value = item.textContent;
+        setLocationNameField(shortenDisplayName(item.textContent));
         box.classList.remove('show');
         box.innerHTML = '';
       });
@@ -744,7 +774,7 @@ async function geocodeQuery(q, limit) {
 }
 
 async function searchMapLocation() {
-  const input = document.getElementById('mapSearchInput');
+  const input = document.getElementById('location');
   const btn = document.getElementById('mapSearchBtn');
   const q = input.value.trim();
   if (!q) return;
@@ -759,6 +789,7 @@ async function searchMapLocation() {
       return;
     }
     flyReportMapTo(parseFloat(results[0].lat), parseFloat(results[0].lon));
+    setLocationNameField(shortenDisplayName(results[0].display_name));
     document.getElementById('mapSuggestions').classList.remove('show');
   } catch (err) {
     showReportAlert('Search failed. Check your connection and try again.', 'error');
@@ -784,11 +815,19 @@ function locateReportMap(silent) {
   if (btn) { btn.disabled = true; btn.textContent = '🎯 Detecting...'; }
 
   navigator.geolocation.getCurrentPosition(
-    pos => {
+    async pos => {
       const lat = pos.coords.latitude, lng = pos.coords.longitude;
       reportMap.setView([lat, lng], 16);
       updateCenterCoords();
       if (btn) { btn.disabled = false; btn.textContent = '🎯 Detect My Location'; }
+
+      try {
+        const data = await reverseGeocode(lat, lng);
+        setLocationNameField(shortLocationName(data));
+      } catch (e) {
+        // Reverse geocoding failed (offline/rate-limited) — the map pin is
+        // still set correctly, they can just type the location name by hand.
+      }
     },
     () => {
       if (btn) { btn.disabled = false; btn.textContent = '🎯 Detect My Location'; }
@@ -839,8 +878,87 @@ function resetReportView() {
   document.querySelectorAll('#reportForm .severity-btn').forEach(btn => btn.classList.remove('selected'));
   document.getElementById('reportSuccess').style.display = 'none';
   document.getElementById('reportForm').style.display = 'block';
+  const orgBox = document.getElementById('citizenOrgSuggestions');
+  if (orgBox) { orgBox.style.display = 'none'; orgBox.innerHTML = ''; }
   if (reportMap) { updateCenterCoords(); }
   window.scrollTo(0, 0);
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+// ================= GPT-OSS ORGANIZATION SUGGESTIONS =================
+// The backend generates these in the background (GPT-OSS via Groq) right
+// after a report is filed, so we poll for a bit until they're ready. Used
+// on both the citizen confirmation screen and the admin report detail view.
+
+async function pollOrgSuggestions(reportId, containerId, maxTries = 6, intervalMs = 2500) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  container.style.display = 'block';
+  container.innerHTML = `<div style="margin-top:20px; padding:14px 16px; border-radius:12px; background:rgba(255,255,255,0.05); font-size:13px; color:rgba(255,255,255,0.6); text-align:center;">🤖 Finding organizations worth notifying...</div>`;
+
+  for (let i = 0; i < maxTries; i++) {
+    try {
+      const res = await fetch(`${API}/reports/${reportId}/organizations`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status && data.status !== 'pending') {
+          renderOrgSuggestions(containerId, data);
+          return;
+        }
+      }
+    } catch (e) {
+      // Keep polling — a single missed check shouldn't give up early.
+    }
+    await new Promise(r => setTimeout(r, intervalMs));
+  }
+  // Gave up waiting — fail quietly rather than block the confirmation screen.
+  container.style.display = 'none';
+  container.innerHTML = '';
+}
+
+function renderOrgSuggestions(containerId, data) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!data || data.status !== 'ready' || !Array.isArray(data.organizations) || !data.organizations.length) {
+    container.style.display = 'none';
+    container.innerHTML = '';
+    return;
+  }
+
+  const cards = data.organizations.map(org => {
+    const handles = [];
+    const tw = org.handles && org.handles.twitter;
+    const ig = org.handles && org.handles.instagram;
+    if (tw && tw !== 'null') {
+      const h = String(tw).replace('@', '');
+      handles.push(`<a href="https://twitter.com/${encodeURIComponent(h)}" target="_blank" rel="noopener" style="color:#4fc3f7; text-decoration:none; margin-right:12px;">🐦 @${escapeHtml(h)}</a>`);
+    }
+    if (ig && ig !== 'null') {
+      const h = String(ig).replace('@', '');
+      handles.push(`<a href="https://instagram.com/${encodeURIComponent(h)}" target="_blank" rel="noopener" style="color:#e1306c; text-decoration:none;">📸 @${escapeHtml(h)}</a>`);
+    }
+    return `<div style="text-align:left; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px 14px; margin-bottom:8px;">
+      <div style="font-weight:600; font-size:13.5px;">${escapeHtml(org.name || 'Organization')}${org.type ? ` <span style="font-weight:400; font-size:11px; color:rgba(255,255,255,0.5);">${escapeHtml(org.type)}</span>` : ''}</div>
+      ${org.reason ? `<div style="font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px;">${escapeHtml(org.reason)}</div>` : ''}
+      ${handles.length ? `<div style="margin-top:6px; font-size:12.5px;">${handles.join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  container.style.display = 'block';
+  container.innerHTML = `
+    <div style="text-align:left; max-width:420px; margin: 20px auto 0;">
+      <div style="font-size:11.5px; text-transform:uppercase; letter-spacing:0.5px; color:rgba(255,255,255,0.45); margin-bottom:8px;">
+        🤖 AI-suggested organizations to tag — verify before contacting
+      </div>
+      ${cards}
+    </div>`;
 }
 
 function compressImage(file, maxDim, quality) {
@@ -876,12 +994,6 @@ async function submitReport(event) {
   event.preventDefault();
   console.log('[Submit] Started');
 
-  const lat = document.getElementById('latitude').value;
-  const lng = document.getElementById('longitude').value;
-  if (!lat || lat === '0' || !lng || lng === '0') {
-    showReportAlert('Please select a location on the map', 'error');
-    return;
-  }
   const imageField = document.getElementById('image');
   if (!imageField.files || !imageField.files[0]) {
     showReportAlert('Please attach a photo of the incident', 'error');
@@ -950,6 +1062,15 @@ async function submitReport(event) {
 
           showGlobalToast('✅ Report submitted successfully!', 7000);
           window.scrollTo(0, 0);
+
+          try {
+            const responseData = JSON.parse(xhr.responseText);
+            const newReportId = responseData.report && responseData.report.id;
+            if (newReportId) {
+              pollOrgSuggestions(newReportId, 'citizenOrgSuggestions');
+            }
+          } catch (e) { /* success screen still shows fine without this */ }
+
           resolve();
         } else {
           console.log('[Submit] Error - response not ok');
@@ -1180,6 +1301,11 @@ function showDetail(id) {
 
   if (lat && lng) html += `<div id="detail-map"></div>`;
 
+  html += `<div class="detail-row"><div class="detail-label">Orgs to Tag</div><div class="detail-value">
+    <button class="btn-outline" style="padding:4px 10px; font-size:12px;" onclick="refreshOrgSuggestions('${id}')">🔄 Refresh suggestions</button>
+  </div></div>`;
+  html += `<div id="adminOrgSuggestions"></div>`;
+
   html += `<textarea class="notes-input" id="adminNotes" placeholder="Add notes...">${r.adminNotes || ''}</textarea>`;
 
   const st = r.status || 'pending';
@@ -1203,6 +1329,38 @@ function showDetail(id) {
       }).addTo(detailMap);
       L.marker([parseFloat(lat), parseFloat(lng)]).addTo(detailMap);
     }, 100);
+  }
+
+  if (r.orgSuggestions && r.orgSuggestions.status && r.orgSuggestions.status !== 'pending') {
+    renderOrgSuggestions('adminOrgSuggestions', r.orgSuggestions);
+  } else {
+    pollOrgSuggestions(id, 'adminOrgSuggestions');
+  }
+}
+
+async function refreshOrgSuggestions(id) {
+  const container = document.getElementById('adminOrgSuggestions');
+  if (container) {
+    container.style.display = 'block';
+    container.innerHTML = `<div style="margin-top:12px; padding:14px 16px; border-radius:12px; background:rgba(255,255,255,0.05); font-size:13px; color:rgba(255,255,255,0.6); text-align:center;">🤖 Refreshing suggestions...</div>`;
+  }
+  try {
+    const res = await fetch(`${API}/reports/${id}/organizations/refresh`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      renderOrgSuggestions('adminOrgSuggestions', data);
+      // Keep the cached copy in allReports in sync so re-opening this report
+      // later (without hitting refresh again) still shows the latest result.
+      const rep = allReports.find(rep => (rep.id || rep._id) === id);
+      if (rep) rep.orgSuggestions = data;
+    } else {
+      showGlobalToast('⚠️ Could not refresh suggestions', 4000);
+    }
+  } catch (e) {
+    showGlobalToast('⚠️ Could not refresh suggestions', 4000);
   }
 }
 
