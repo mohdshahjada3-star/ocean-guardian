@@ -1,609 +1,791 @@
-# OceanGuard
+<div align="center">
+
+# 🌊 OceanGuard
 
 ### Marine Pollution Incident Management & Reporting System
 
-[![GitHub](https://img.shields.io/badge/GitHub-OceanGuard-blue?logo=github)](https://github.com/mohdshahjada3-star/ocean-guardian)
-[![Status](https://img.shields.io/badge/Status-Active-brightgreen)]()
-[![SDG 14](https://img.shields.io/badge/SDG-14%20Life%20Below%20Water-0066cc)]()
+Empowering communities to protect ocean ecosystems through intelligent reporting, real-time monitoring, and collaborative incident management.
 
-**OceanGuard** is a comprehensive full-stack web platform designed to combat marine pollution through real-time incident reporting, advanced analytics, and automated stakeholder notifications. Built in collaboration with MARS NGO to support UN Sustainable Development Goal 14.
+[![Version](https://img.shields.io/badge/Version-2.0-blue?style=flat-square)](https://github.com/mohdshahjada3-star/ocean-guardian)
+[![Status](https://img.shields.io/badge/Status-Active-success?style=flat-square)](https://github.com/mohdshahjada3-star/ocean-guardian)
+[![Platform](https://img.shields.io/badge/Platform-Web-orange?style=flat-square)](https://github.com/mohdshahjada3-star/ocean-guardian)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+[![SDG 14](https://img.shields.io/badge/UN%20SDG-14%20Life%20Below%20Water-0A97D9?style=flat-square)](https://sdgs.un.org/goals/goal14)
 
----
+[Live Demo](#) • [Documentation](#tech-stack) • [Features](#features) • [Contributing](#-contributing)
 
-## 🌊 Project Overview
-
-OceanGuard bridges the gap between environmental citizens and conservation organizations by providing an intuitive platform for reporting marine pollution incidents in real-time. The system leverages cloud infrastructure, geospatial data, and automated notifications to enable rapid response to ocean pollution threats.
-
-### Core Capabilities
-
-#### 👥 For Citizens & Observers
-- **Intuitive Incident Reporting**: One-click pollution report submission with guided form
-- **Location Mapping**: Interactive map-based location selection using Leaflet.js
-- **Image Documentation**: Upload high-resolution incident photos to Firebase Storage
-- **Real-Time Confirmation**: Instant acknowledgment of report submission
-
-#### 🏢 For NGO Staff & Administrators
-- **Real-Time Dashboard**: Live incident tracking with status management and filtering
-- **3D Visualization Interface**: Three.js powered interactive 3D ocean environment showcasing incidents
-- **Advanced Analytics**: Chart.js powered visualizations for incident trends, severity distribution, and temporal patterns
-- **Automated Email Alerts**: Instant email notifications to admin team when new incidents are reported
-- **Role-Based Access Control**: Secure admin panel with authentication and authorization
-- **Incident Management**: Update statuses, assign priorities, and track resolution progress
-
-#### 🔔 Automated Notification System
-- **Real-Time Email Alerts**: Nodemailer integration sends immediate notifications to admin email
-- **Rich Email Content**: Includes incident details, location info, reporter contact, and dashboard links
-- **SMTP Configuration**: Supports Gmail, SendGrid, AWS SES, and custom SMTP servers
-- **Customizable Recipients**: Configure alert distribution to multiple stakeholders
+</div>
 
 ---
 
-## 🎨 3D Ocean Dashboard
+## 📋 Table of Contents
 
-The admin dashboard features an innovative **Three.js-powered 3D ocean visualization** that:
-- Displays incident locations as interactive markers in a 3D ocean environment
-- Provides immersive spatial awareness of pollution hotspots
-- Combines 3D visualization with real-time data analytics
-- Creates engaging visual representation of marine conservation efforts
-
----
-
-## 💻 Technology Stack
-
-### Backend Architecture
-```
-Express.js (Node.js)
-├── Firebase Admin SDK
-├── Firestore Database
-├── Cloud Storage
-└── Nodemailer (Email Service)
-```
-
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **Runtime** | Node.js v14+ | Server execution |
-| **Framework** | Express.js | REST API & routing |
-| **Database** | Firebase Firestore | Real-time NoSQL database |
-| **Storage** | Firebase Cloud Storage | Image upload & retrieval |
-| **Authentication** | Firebase Auth + JWT | Secure user access |
-| **Notifications** | Nodemailer | Email alert delivery |
-| **Port** | 5000 (configurable) | Server port |
-
-### Frontend Architecture
-```
-Single Page Application (HTML5/CSS3/JavaScript)
-├── Three.js - 3D Visualizations
-├── Leaflet.js - Map Integration
-├── Chart.js - Analytics & Reporting
-└── Firebase SDK - Real-time sync
-```
-
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **UI** | HTML5 / CSS3 / Vanilla JS | Responsive interface |
-| **3D Graphics** | Three.js | Interactive 3D ocean scene |
-| **Mapping** | Leaflet.js | Geolocation & incident mapping |
-| **Analytics** | Chart.js | Data visualization & dashboards |
-| **Database Sync** | Firebase Client SDK | Real-time data updates |
+- [Overview](#-overview)
+- [Problem Statement](#-problem-statement)
+- [Solution](#-solution)
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Prerequisites](#-prerequisites)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [Running the Project](#-running-the-project)
+- [Project Structure](#-project-structure)
+- [System Architecture](#-system-architecture)
+- [API Documentation](#-api-documentation)
+- [Usage Guide](#-usage-guide)
+- [Deployment](#-deployment)
+- [Troubleshooting](#-troubleshooting)
+- [Future Enhancements](#-future-enhancements)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ---
 
-## 📁 Project Structure
+## 🌍 Overview
 
+**OceanGuard** is a full-stack web application that bridges the gap between citizens and environmental authorities. It enables real-time reporting of marine pollution incidents while providing administrators with intelligent tools to monitor, analyze, and coordinate response efforts.
+
+The platform leverages modern cloud technologies and AI to streamline incident management and accelerate environmental action.
+
+---
+
+## 🚨 Problem Statement
+
+Marine pollution is one of the most pressing environmental challenges:
+
+- **Plastic Waste**: Millions of tons enter oceans annually
+- **Oil Spills**: Catastrophic impact on marine biodiversity
+- **Chemical Discharge**: Industrial waste contaminates ecosystems
+- **Delayed Response**: Many incidents go unreported, reducing response effectiveness
+- **Lack of Coordination**: Citizens and authorities lack centralized communication channels
+
+**Current Impact:**
+- Estimated 8 million tons of plastic enter oceans yearly
+- Marine life affected in over 86% of the ocean's surface
+- Response times delayed due to lack of real-time incident data
+
+---
+
+## 💡 Solution
+
+OceanGuard creates a **unified ecosystem** for marine pollution management:
+
+### For Citizens
+- **Instant Reporting**: Submit pollution incidents in real-time
+- **Visual Documentation**: Upload images for incident verification
+- **GPS Integration**: Automatic location tagging for accuracy
+- **Real-time Tracking**: Monitor incident status from submission to resolution
+- **Email Updates**: Stay informed about incident progress
+
+### For Administrators
+- **Centralized Dashboard**: Monitor all incidents at a glance
+- **Intelligent Analytics**: Identify pollution hotspots and trends
+- **Status Management**: Track incident lifecycle from pending to resolved
+- **AI Suggestions**: Auto-generate organization contacts using GPT-OSS
+- **Report Management**: Comprehensive filtering and incident categorization
+
+---
+
+## ✨ Features
+
+### 👤 Citizen Portal
+
+| Feature | Description |
+|---------|-------------|
+| **Secure Authentication** | JWT-based login and registration |
+| **Incident Reporting** | Submit marine pollution reports with details |
+| **Image Upload** | Upload multiple pollution images via Cloudinary |
+| **Location Selection** | Interactive map with GPS support |
+| **Location Search** | Search and select pollution incident locations |
+| **Incident History** | View all submitted reports and their status |
+| **Real-time Tracking** | Monitor report progress from submission to resolution |
+| **Email Notifications** | Automatic updates at each status change |
+| **Social Media Suggestions** | AI-powered organization contact recommendations |
+| **Responsive Design** | Optimized for desktop, tablet, and mobile |
+
+### 🛡️ Admin Portal
+
+| Feature | Description |
+|---------|-------------|
+| **Admin Authentication** | Secure admin-only login system |
+| **Analytics Dashboard** | Visual statistics of all incidents |
+| **Report Management** | View, filter, and manage all citizen reports |
+| **Status Updates** | Change incident status (Pending → In Progress → Resolved) |
+| **Severity Detection** | Automatic flagging of high-priority incidents |
+| **Bulk Operations** | Delete and manage reports efficiently |
+| **Email Notifications** | Notify citizens of status changes automatically |
+| **Filtering & Search** | Advanced filtering by status, severity, and date |
+| **Organization Suggestions** | AI-recommended contacts for incident notification |
+
+### 🤖 AI Intelligence
+
+**GPT-OSS Integration** intelligently suggests:
+- Environmental Protection Agencies
+- Pollution Control Boards
+- Coast Guard and Maritime Authorities
+- Municipal Environmental Departments
+- International NGOs and Organizations
+
+---
+
+## 🛠 Tech Stack
+
+### Frontend
 ```
-ocean-guardian/
-│
-├── ocean-guardian-backend/
-│   ├── server.js                 # Express server & API routes
-│   ├── model.js                  # Firestore schema & database logic
-│   ├── package.json              # Node.js dependencies
-│   ├── package-lock.json         # Dependency lock file
-│   ├── .env                      # Environment variables (git-ignored)
-│   ├── serviceAccountKey.json    # Firebase credentials (git-ignored)
-│   ├── uploads/                  # Incident image storage (git-ignored)
-│   └── .gitignore                # Git exclusion rules
-│
-├── ocean-guardian-frontend/
-│   ├── index.html                # Single-page application UI
-│   └── ocean_bg.png              # Marine background asset
-│
-└── README.md                      # This file
+HTML5 | CSS3 | Vanilla JavaScript
+Bootstrap 5 | Leaflet.js | Chart.js | Three.js
+```
+
+### Backend
+```
+Node.js | Express.js
+```
+
+### Database & Authentication
+```
+Firebase Firestore | Firebase Authentication | JWT
+```
+
+### Cloud Services
+```
+Cloudinary (Image Storage) | Firebase Storage
+```
+
+### Communication
+```
+Nodemailer (Email Notifications)
+```
+
+### AI/ML
+```
+GPT-OSS (Organization Suggestions)
+```
+
+### Deployment
+```
+Render | Vercel
 ```
 
 ---
 
-## 🚀 Quick Start Guide
+## 📦 Prerequisites
 
-### Prerequisites
+Before you begin, ensure you have the following installed:
 
-- **Node.js** v14 or higher ([Download](https://nodejs.org/))
-- **npm** 6.0+
-- **Firebase Project** with Firestore & Storage enabled
-- **Gmail Account** (for email notifications) or SMTP server access
-- **Git** for version control
+- **Node.js** (v14 or higher) - [Download](https://nodejs.org/)
+- **npm** (v6 or higher) - Comes with Node.js
+- **Git** - [Download](https://git-scm.com/)
+- **Code Editor** - VS Code recommended - [Download](https://code.visualstudio.com/)
 
-### Installation Steps
+### Required Accounts (Free Tier Available)
+- Firebase Project - [Create](https://console.firebase.google.com/)
+- Cloudinary Account - [Sign Up](https://cloudinary.com/)
+- Email Account (Gmail recommended) - [Gmail](https://mail.google.com/)
 
-#### 1️⃣ Clone Repository
+---
+
+## 📥 Installation
+
+### Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/mohdshahjada3-star/ocean-guardian.git
 cd ocean-guardian
 ```
 
-#### 2️⃣ Backend Configuration
+### Step 2: Install Dependencies
 
 ```bash
-cd ocean-guardian-backend
 npm install
 ```
 
-##### Create `.env` File
+This will install all required packages from `package.json`:
+- express
+- firebase-admin
+- jsonwebtoken
+- dotenv
+- nodemailer
+- multer
+- cloudinary
+- cors
+- body-parser
 
-Create a new file named `.env` in `ocean-guardian-backend/` with the following configuration:
+### Step 3: Set Up Environment Variables
+
+Create a `.env` file in the root directory:
+
+```bash
+touch .env
+```
+
+Add the following variables (see Configuration section below):
 
 ```env
 # Server Configuration
 PORT=5000
 NODE_ENV=development
 
+# JWT Configuration
+JWT_SECRET=your_super_secret_jwt_key_min_32_chars_recommended
+
+# Email Configuration
+EMAIL_USER=your_gmail@gmail.com
+EMAIL_PASS=your_app_password
+EMAIL_FROM=OceanGuard <noreply@oceanguard.com>
+
+# Cloudinary Configuration
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
 # Firebase Configuration
-FIREBASE_API_KEY=your_firebase_api_key_here
-FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 FIREBASE_PROJECT_ID=your_project_id
-FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-FIREBASE_MESSAGING_SENDER_ID=123456789
-FIREBASE_APP_ID=1:123456789:web:abcdef1234567890abcdef
+FIREBASE_CLIENT_EMAIL=your_client_email
+FIREBASE_PRIVATE_KEY=your_private_key
 
-# Email Configuration (Gmail SMTP)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_app_specific_password
-ADMIN_EMAIL=admin@oceanguard.org
-ADMIN_NAME=OceanGuard Admin Team
-
-# Optional: For custom SMTP
-# SMTP_HOST=mail.example.com
-# SMTP_PORT=587
-# SMTP_USER=user@example.com
-# SMTP_PASS=password
+# Admin Credentials (optional)
+ADMIN_EMAIL=admin@oceanguard.com
+ADMIN_PASSWORD=admin123
 ```
 
-**⚠️ Important:** Never commit `.env` to GitHub. It's automatically excluded by `.gitignore`.
+---
 
-##### Firebase Service Account Setup
+## ⚙️ Configuration
+
+### Firebase Setup
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Select your project
-3. Navigate to **Project Settings** → **Service Accounts**
-4. Click **Generate new private key**
-5. Save the downloaded JSON file as `serviceAccountKey.json` in `ocean-guardian-backend/`
-6. **Keep this file secret** — it's git-ignored for security
+2. Create a new project named "OceanGuard"
+3. Enable Firestore Database:
+   - Go to **Firestore Database**
+   - Click **Create Database**
+   - Start in **Production Mode**
+   - Select region closest to you
 
-##### Gmail App Password (For Email Alerts)
+4. Enable Firebase Authentication:
+   - Go to **Authentication**
+   - Click **Get Started**
+   - Enable **Email/Password** authentication
 
-If using Gmail for SMTP:
+5. Get Service Account Key:
+   - Go to **Project Settings** → **Service Accounts**
+   - Click **Generate New Private Key**
+   - Download and keep safe
+   - Add values to `.env` file
 
-1. Enable 2-Factor Authentication on your Google Account
-2. Go to [Google App Passwords](https://myaccount.google.com/apppasswords)
-3. Generate an app-specific password for "Mail"
-4. Use this password in `SMTP_PASS` in your `.env`
+### Cloudinary Setup
 
-#### 3️⃣ Start Backend Server
+1. Sign up at [Cloudinary](https://cloudinary.com/)
+2. Go to **Dashboard**
+3. Copy your:
+   - **Cloud Name**
+   - **API Key**
+   - **API Secret**
+4. Add to `.env` file
+
+### Email Configuration (Gmail)
+
+1. Enable 2-Factor Authentication on Gmail
+2. Generate App Password:
+   - Go to [Google Account](https://myaccount.google.com/)
+   - Navigate to **Security** → **App passwords**
+   - Select **Mail** and **Windows Computer** (or your device)
+   - Copy the generated password
+3. Add to `.env` file:
+   ```env
+   EMAIL_USER=your_gmail@gmail.com
+   EMAIL_PASS=generated_app_password
+   ```
+
+---
+
+## 🚀 Running the Project
+
+### Development Mode
 
 ```bash
 npm start
 ```
 
-**Expected Output:**
+The server will start on `http://localhost:5000`
+
+### In Another Terminal, Open Frontend
+
+1. **Using Live Server (VS Code)**
+   - Install Live Server extension
+   - Right-click `index.html` → **Open with Live Server**
+   - Opens on `http://127.0.0.1:5500`
+
+2. **Using Python HTTP Server**
+   ```bash
+   python -m http.server 8000
+   ```
+   - Access at `http://localhost:8000`
+
+3. **Using Node.js**
+   ```bash
+   npm install -g http-server
+   http-server -p 8000
+   ```
+
+### Testing the Application
+
+**Admin Credentials:**
 ```
-OceanGuard API is running 🌊
-OceanGuard Server running on http://localhost:5000
-Open the app at http://localhost:5000 (frontend + API on one server)
+Email: admin@oceanguard.com
+Password: admin123
 ```
 
-#### 4️⃣ Access Frontend
+**Test Workflow:**
+1. Register as a citizen
+2. Submit a pollution report
+3. Upload an image
+4. Select location on map
+5. Login as admin
+6. View report on dashboard
+7. Update status
+8. Check email for notifications
 
-Open your browser and navigate to:
+---
+
+## 📂 Project Structure
+
 ```
-http://localhost:5000
+ocean-guardian/
+├── ocean-guardian-frontend/          # Frontend files
+│   ├── index.html                   # Main application page
+│   ├── styles.css                   # Global styles
+│   ├── script.js                    # Main JavaScript
+│   ├── admin.js                     # Admin dashboard logic
+│   ├── auth.js                      # Authentication logic
+│   └── assets/                      # Images, icons, 3D models
+│
+├── backend/                         # Backend code
+│   ├── server.js                    # Express server
+│   ├── routes/                      # API routes
+│   ├── middleware/                  # Authentication, validation
+│   └── config/                      # Configuration files
+│
+├── uploads/                         # Temporary upload storage
+│
+├── screenshots/                     # Project documentation images
+│
+├── .env                            # Environment variables (create this)
+├── .env.example                    # Example environment variables
+├── .gitignore                      # Git ignore file
+├── package.json                    # Dependencies
+├── server.js                       # Main server file
+└── README.md                       # Project documentation
 ```
 
 ---
 
-## 📊 API Documentation
+## 🏗 System Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    CLIENT LAYER                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │ Citizen Form │  │  Admin Panel │  │ Map & Charts │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+└─────────────────┬───────────────────────────────────────┘
+                  │ HTTP/REST
+┌─────────────────▼───────────────────────────────────────┐
+│                    API LAYER                             │
+│              Express.js Server (Node.js)                 │
+│  ┌──────────┐  ┌──────────┐  ┌──────────────────────┐  │
+│  │Auth APIs │  │Report    │  │Admin Management APIs │  │
+│  │(JWT)     │  │APIs      │  │                      │  │
+│  └──────────┘  └──────────┘  └──────────────────────┘  │
+└─┬──────┬──────────┬──────────┬──────────┬───────────────┘
+  │      │          │          │          │
+  │      │          │          │          │
+  ▼      ▼          ▼          ▼          ▼
+┌────────────┐ ┌───────────┐ ┌──────────┐ ┌───────────┐
+│ Firebase   │ │Cloudinary │ │ Nodemailer │ │ GPT-OSS │
+│ Auth       │ │ Storage   │ │  Email     │ │Suggestions│
+└────────────┘ └───────────┘ └──────────┘ └───────────┘
+       │              │            │            │
+       └──────┬───────┴────────────┴────────────┘
+              │
+        ┌─────▼──────┐
+        │ Firestore  │
+        │ Database   │
+        └────────────┘
+```
+
+---
+
+## 📡 API Documentation
 
 ### Base URL
 ```
-http://localhost:5000
+http://localhost:5000/api
 ```
 
-### Endpoints
+### Authentication Endpoints
 
-#### Health Check
+#### Register User
 ```http
-GET /api/health
-```
-**Response:** `{ status: "OceanGuard API is running" }`
-
-#### Submit Incident Report
-```http
-POST /api/reports
+POST /auth/register
 Content-Type: application/json
 
 {
-  "title": "Oil Spill in Coastal Waters",
-  "description": "Large oil slick observed near marine sanctuary",
-  "location": {
-    "latitude": 19.0760,
-    "longitude": 72.8777
-  },
-  "reporterName": "John Doe",
-  "reporterEmail": "john@example.com",
-  "reporterPhone": "+91 9876543210",
-  "incidentType": "Oil Spill",
-  "severity": "High"
+  "email": "user@example.com",
+  "password": "password123",
+  "name": "User Name"
 }
 ```
 
-#### Retrieve All Reports (Admin)
+#### Login
 ```http
-GET /api/reports
-Authorization: Bearer <jwt_token>
-```
-
-#### Update Report Status (Admin)
-```http
-PUT /api/reports/:reportId
-Authorization: Bearer <jwt_token>
+POST /auth/login
 Content-Type: application/json
 
 {
-  "status": "Under Review",
-  "notes": "Field team dispatched for investigation"
+  "email": "user@example.com",
+  "password": "password123"
 }
 ```
 
-#### Delete Report (Admin)
+### Report Endpoints
+
+#### Submit Report
 ```http
-DELETE /api/reports/:reportId
-Authorization: Bearer <jwt_token>
+POST /reports/submit
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+{
+  "type": "oil_spill",
+  "description": "Oil spill detected",
+  "latitude": "28.6139",
+  "longitude": "77.2090",
+  "image": <file>
+}
+```
+
+#### Get User Reports
+```http
+GET /reports/user
+Authorization: Bearer <token>
+```
+
+#### Get All Reports (Admin)
+```http
+GET /reports/all
+Authorization: Bearer <admin_token>
+```
+
+#### Update Report Status
+```http
+PUT /reports/:id/status
+Authorization: Bearer <admin_token>
+Content-Type: application/json
+
+{
+  "status": "in_progress"
+}
 ```
 
 ---
 
-## 📧 Email Notification System
+## 📖 Usage Guide
 
-### How It Works
+### For Citizens
 
-When a new incident is reported, an automated email is triggered:
+1. **Register Account**
+   - Navigate to registration page
+   - Enter email and password
+   - Verify account via email
 
-1. **Trigger Event**: User submits incident report via web form
-2. **Data Processing**: Backend validates and stores in Firestore
-3. **Email Generation**: Nodemailer creates formatted HTML email
-4. **Delivery**: Email sent to configured admin address via SMTP
-5. **Tracking**: Email sent log stored for audit trail
+2. **Submit Report**
+   - Click "Report Incident"
+   - Select pollution type
+   - Provide detailed description
+   - Upload incident photos
+   - Click on map to select location
+   - Submit report
 
-### Email Template Content
+3. **Track Status**
+   - Go to "My Reports"
+   - View status of each submission
+   - Check email for updates
 
-```
-Subject: 🚨 New Marine Pollution Incident Report
+### For Administrators
 
-To: admin@oceanguard.org
+1. **Login to Admin Panel**
+   - Enter admin credentials
+   - Access admin dashboard
 
-Dear OceanGuard Team,
+2. **View Reports**
+   - See all submitted incidents
+   - Filter by status or severity
+   - View incident details
 
-A new marine pollution incident has been reported:
+3. **Manage Incidents**
+   - Update report status
+   - Add internal notes
+   - Delete irrelevant reports
 
-INCIDENT DETAILS
-├─ Title: Oil Spill in Coastal Waters
-├─ Type: Oil Spill
-├─ Severity: High
-├─ Description: Large oil slick observed near marine sanctuary
-└─ Time: 2026-07-04 01:30:00 UTC
-
-LOCATION
-├─ Latitude: 19.0760°N
-├─ Longitude: 72.8777°E
-└─ Map: [Link to Map View]
-
-REPORTER INFORMATION
-├─ Name: John Doe
-├─ Email: john@example.com
-└─ Phone: +91 9876543210
-
-VIEW & MANAGE: https://your-domain.com/admin/reports
-
-Take action now!
-- Review incident details
-- Assess severity
-- Dispatch response team
-- Update incident status
-
-Best regards,
-OceanGuard System
-```
+4. **Analyze Trends**
+   - View dashboard statistics
+   - Identify pollution hotspots
+   - Export reports for analysis
 
 ---
 
-## 🗄️ Firestore Database Schema
-
-### Collections & Documents
-
-#### `reports` Collection
-
-```javascript
-reports/
-├── [report-id-001]
-│   ├── id: string (unique identifier)
-│   ├── title: string ("Oil Spill in Coastal Waters")
-│   ├── description: string (detailed incident description)
-│   ├── incidentType: string ("Oil Spill" | "Debris" | "Chemical" | "Other")
-│   ├── severity: string ("Low" | "Medium" | "High" | "Critical")
-│   ├── status: string ("Pending" | "Under Review" | "In Progress" | "Resolved")
-│   ├── location: object
-│   │   ├── latitude: number
-│   │   ├── longitude: number
-│   │   └── address: string (reverse geocoded)
-│   ├── imageUrl: string (Firebase Storage path)
-│   ├── reporterName: string
-│   ├── reporterEmail: string
-│   ├── reporterPhone: string
-│   ├── timestamp: timestamp (ISO 8601)
-│   ├── createdBy: string (user UID)
-│   ├── adminNotes: string (internal comments)
-│   └── resolvedDate: timestamp (when marked resolved)
-└── [report-id-002]
-    └── {...}
-```
-
----
-
-## 🔐 Security Features
-
-### Authentication & Authorization
-- **Firebase JWT**: Secure token-based authentication
-- **Role-Based Access Control (RBAC)**: Separate permissions for citizen and admin roles
-- **Session Management**: Automatic token validation on API requests
-
-### Data Protection
-- **Environment Variables**: Sensitive keys stored locally, never committed
-- **Firebase Security Rules**: Collection-level access restrictions
-- **HTTPS**: Production deployment requires SSL/TLS
-- **Input Validation**: Server-side validation of all user inputs
-
-### File Upload Security
-- **File Type Validation**: Only image formats accepted
-- **Size Limits**: Maximum file size restrictions
-- **Virus Scanning**: Firebase Storage scans all uploads
-- **Access Control**: Private storage with authenticated access
-
----
-
-## 📈 Dashboard Features
-
-### Admin Dashboard Components
-
-#### 1. Real-Time Incident Feed
-- Live list of submitted incidents
-- Sortable by date, severity, type, location
-- Quick-action buttons for status updates
-
-#### 2. 3D Ocean Visualization
-- Interactive Three.js 3D ocean scene
-- Incident markers with color-coding by severity
-- Zoom, pan, rotate controls
-- Hover tooltips showing incident summary
-
-#### 3. Analytics Dashboard
-- Incident trend line chart (past 30 days)
-- Severity distribution pie chart
-- Incident type breakdown bar chart
-- Resolution time metrics
-- Geographic heatmap of pollution hotspots
-
-#### 4. Incident Management Panel
-- View full incident details
-- Update status and priority
-- Add internal notes and comments
-- Assign to response teams
-- Generate incident reports
-
----
-
-## 🌍 SDG 14 Alignment
-
-**UN Sustainable Development Goal 14: Life Below Water**
-
-OceanGuard directly contributes to:
-
-| SDG Target | How OceanGuard Helps |
-|-----------|-------------------|
-| **14.1** Prevent & reduce marine pollution | Real-time reporting enables rapid response to incidents |
-| **14.2** Protect & restore marine ecosystems | Data-driven insights guide conservation efforts |
-| **14.5** Conserve coastal areas | Identifies pollution hotspots for targeted action |
-| **14.A** Research & technology transfer | Provides marine environmental data for research |
-
----
-
-## 🚢 Deployment Guide
+## 🚀 Deployment
 
 ### Deploy Backend to Render
 
-1. **Create Render Account**: Visit [render.com](https://render.com)
-2. **Connect GitHub**: Authorize GitHub integration
-3. **Create Web Service**:
-   - Select `ocean-guardian` repository
-   - Set **Root Directory**: `ocean-guardian-backend`
-   - Set **Build Command**: `npm install`
-   - Set **Start Command**: `node server.js`
-4. **Add Environment Variables**:
-   - Copy all values from local `.env`
-   - Paste into Render dashboard
-5. **Deploy**: Click Deploy button
-
-**Backend URL**: `https://your-app.onrender.com`
+1. Create account at [Render](https://render.com/)
+2. Connect GitHub repository
+3. Create new Web Service
+4. Set environment variables in Render dashboard
+5. Deploy
 
 ### Deploy Frontend to Vercel
 
-1. **Create Vercel Account**: Visit [vercel.com](https://vercel.com)
-2. **Import Project**:
-   - Connect GitHub
-   - Select `ocean-guardian` repository
-3. **Configure**:
-   - Set **Root Directory**: `ocean-guardian-frontend`
-   - No build command needed
-4. **Deploy**: Click Deploy
+1. Create account at [Vercel](https://vercel.com/)
+2. Connect GitHub repository
+3. Import project
+4. Set deployment configuration
+5. Deploy
 
-**Frontend URL**: `https://your-app.vercel.app`
+### Environment Variables for Production
 
-### Post-Deployment Configuration
-
-Update frontend API calls to use Render backend URL:
-
-In `ocean-guardian-frontend/index.html`, change:
-```javascript
-const API_BASE_URL = "https://your-app.onrender.com";
+```env
+PORT=5000
+NODE_ENV=production
+JWT_SECRET=your_production_secret_key
+DATABASE_URL=your_production_database_url
+# ... other production variables
 ```
 
 ---
 
-## 🛠️ Development & Contributing
+## 🐛 Troubleshooting
 
-### Local Development Workflow
+### Common Issues & Solutions
 
+#### 1. Firebase Connection Error
+```
+Error: Cannot find project credentials
+```
+**Solution:**
+- Verify `.env` file exists and has correct Firebase credentials
+- Check Firebase project is active
+- Regenerate service account key
+
+#### 2. Cloudinary Upload Failed
+```
+Error: Invalid Cloudinary credentials
+```
+**Solution:**
+- Verify `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`
+- Check Cloudinary account is not suspended
+- Verify upload presets in Cloudinary dashboard
+
+#### 3. Email Notifications Not Working
+```
+Error: SMTP authentication failed
+```
+**Solution:**
+- Enable "Less secure app access" in Gmail (or use App Password)
+- Verify email credentials in `.env`
+- Check if Gmail is blocking the connection
+
+#### 4. CORS Error in Browser
+```
+Error: Access to XMLHttpRequest blocked by CORS policy
+```
+**Solution:**
+- Ensure `cors` is enabled in Express server
+- Check API endpoint URLs are correct
+- Clear browser cache and restart
+
+#### 5. Map Not Loading
+```
+Map initialization error
+```
+**Solution:**
+- Verify Leaflet.js is loaded correctly
+- Check browser console for errors
+- Ensure `index.html` references map container properly
+
+#### 6. Port Already in Use
+```
+Error: listen EADDRINUSE :::5000
+```
+**Solution:**
 ```bash
-# Terminal 1: Backend
-cd ocean-guardian-backend
-npm start
+# Find process using port 5000
+lsof -i :5000
 
-# Terminal 2: Frontend (separate browser window)
-cd ocean-guardian-frontend
-# Open index.html in browser
+# Kill the process
+kill -9 <PID>
 ```
 
-### Making Changes
+---
 
-1. Create feature branch:
+## 🔄 Database Schema
+
+### Users Collection
+```json
+{
+  "uid": "user123",
+  "email": "user@example.com",
+  "name": "User Name",
+  "role": "citizen",
+  "createdAt": "2024-01-15T10:30:00Z",
+  "profileImage": "url_to_image"
+}
+```
+
+### Reports Collection
+```json
+{
+  "reportId": "report123",
+  "userId": "user123",
+  "type": "oil_spill",
+  "description": "Oil spill details",
+  "location": {
+    "latitude": 28.6139,
+    "longitude": 77.2090,
+    "address": "Location name"
+  },
+  "images": ["url1", "url2"],
+  "status": "pending",
+  "severity": "high",
+  "createdAt": "2024-01-15T10:30:00Z",
+  "updatedAt": "2024-01-15T11:30:00Z"
+}
+```
+
+---
+
+## 📈 Future Enhancements
+
+### Phase 2 Features
+- [ ] Mobile application (React Native/Flutter)
+- [ ] Push notifications
+- [ ] Heatmap visualization of pollution hotspots
+- [ ] Real-time incident tracking with WebSocket
+- [ ] AI image classification for automatic severity detection
+- [ ] Government API integration for official data
+- [ ] Multi-language support (10+ languages)
+- [ ] Offline report submission with sync
+- [ ] IoT sensor integration
+- [ ] Machine learning pollution prediction models
+- [ ] Social media integration for viral reporting
+- [ ] Gamification (badges, leaderboards)
+- [ ] Advanced analytics and reporting tools
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how to get involved:
+
+### Contributing Guidelines
+
+1. **Fork the Repository**
    ```bash
-   git checkout -b feature/incident-filters
+   git clone https://github.com/your-username/ocean-guardian.git
+   cd ocean-guardian
    ```
 
-2. Make changes and test locally
-
-3. Commit with clear messages:
+2. **Create a Feature Branch**
    ```bash
-   git commit -m "Add date range filtering to incident dashboard"
+   git checkout -b feature/your-feature-name
    ```
 
-4. Push and create Pull Request:
+3. **Make Your Changes**
+   - Follow existing code style
+   - Add comments for complex logic
+   - Test thoroughly
+
+4. **Commit with Clear Messages**
    ```bash
-   git push origin feature/incident-filters
+   git commit -m "Add: clear description of changes"
    ```
+
+5. **Push to Your Fork**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+6. **Open a Pull Request**
+   - Describe changes clearly
+   - Reference related issues
+   - Wait for review
 
 ### Code Style Guidelines
 
 - Use meaningful variable names
-- Add comments for complex logic
-- Keep functions focused and modular
-- Test changes before committing
+- Add JSDoc comments for functions
+- Keep functions small and focused
+- Follow existing patterns in codebase
+
+### Reporting Issues
+
+Found a bug? Please create an issue with:
+- Clear description of the problem
+- Steps to reproduce
+- Expected vs actual behavior
+- Screenshots (if applicable)
 
 ---
 
-## 📋 Testing
+## 📄 License
 
-### Manual Testing Checklist
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-- [ ] Submit incident report with all fields
-- [ ] Verify email notification arrives in admin inbox
-- [ ] Check incident appears in admin dashboard within 5 seconds
-- [ ] Verify 3D ocean visualization shows new marker
-- [ ] Update incident status and confirm change persists
-- [ ] Upload image and verify it displays in report
-- [ ] Test location mapping accuracy
-- [ ] Verify email contains clickable dashboard link
-
-### Automated Testing (Future)
-
-- Unit tests: Jest
-- Integration tests: Supertest
-- E2E tests: Cypress
-- Coverage target: 80%+
+MIT License grants you the freedom to use, modify, and distribute this software.
 
 ---
 
-## 🔄 Troubleshooting
+## 👨‍💻 Author
 
-| Issue | Solution |
-|-------|----------|
-| **Backend won't start** | Check Node.js version, ensure .env file exists |
-| **Emails not sending** | Verify SMTP credentials, check Gmail app password, whitelist server IP |
-| **Firebase connection fails** | Verify `serviceAccountKey.json` path, check Firestore rules |
-| **3D visualization not loading** | Clear browser cache, ensure Three.js library loads |
-| **Image upload fails** | Check Firebase Storage rules, verify file size < 10MB |
-
----
-
-## 🌟 Future Enhancements
-
-- [ ] Mobile app (React Native / Flutter)
-- [ ] SMS notifications in addition to email
-- [ ] AI-powered incident categorization
-- [ ] Predictive analytics for pollution patterns
-- [ ] Integration with government environmental agencies
-- [ ] Offline reporting with automatic sync
-- [ ] Multi-language support (Hindi, Spanish, etc.)
-- [ ] Video incident reporting
-- [ ] Community ranking and leaderboards
-- [ ] Real-time incident clustering on map
-
----
-
-## 📞 Support & Documentation
-
-- **Issues**: Report via GitHub Issues
-- **Discussions**: GitHub Discussions for questions
-- **Email**: Contact development team
-- **Documentation**: See README sections above
-
----
-
-## 📜 License
-
-This project is open source and available under the MIT License.
-
----
-
-## 👥 Team & Acknowledgments
-
-| Role | Name | Organization |
-|------|------|--------------|
-| **Developer** | Shahjada | IILM University |
-| **Partner NGO** | MARS | Marine And River Solutions |
-| **Academic Advisor** | IILM Faculty | IILM University |
+**Shahjada**
+- B.Tech Computer Science Engineering
+- IILM University, Greater Noida
+- GitHub: [@mohdshahjada3-star](https://github.com/mohdshahjada3-star)
 
 ---
 
 ## 🙏 Acknowledgments
 
-- **UN SDG 14**: Inspiration for marine conservation mission
-- **Firebase**: Cloud infrastructure and services
-- **Three.js**: 3D visualization technology
-- **Leaflet**: Open-source mapping library
-- **Chart.js**: Data visualization framework
-- **Nodemailer**: Email delivery system
+Special thanks to:
+- **MARS NGO** - Collaboration partner
+- **Firebase** - Database and authentication
+- **Cloudinary** - Image storage
+- **Leaflet.js** - Interactive maps
+- **Chart.js** - Data visualization
 
 ---
 
-**Made with 🌊 for ocean conservation and marine sustainability**
+## 📞 Support & Contact
+
+For questions, suggestions, or support:
+- Open an GitHub issue
+- Check existing documentation
+- Review troubleshooting section
 
 ---
 
-### Repository Stats
+<div align="center">
 
-![GitHub stars](https://img.shields.io/github/stars/mohdshahjada3-star/ocean-guardian?style=social)
-![GitHub forks](https://img.shields.io/github/forks/mohdshahjada3-star/ocean-guardian?style=social)
-![Last commit](https://img.shields.io/github/last-commit/mohdshahjada3-star/ocean-guardian)
+## 🌊 Protect Oceans Today for a Better Tomorrow
 
-**Join the mission to protect our oceans! 🌊**
+Join thousands of citizens protecting marine ecosystems. Every report matters. Every action counts.
+
+**Made with ❤️ for ocean conservation**
+
+[![GitHub](https://img.shields.io/badge/GitHub-mohdshahjada3--star-blue?style=flat-square&logo=github)](https://github.com/mohdshahjada3-star)
+[![Stars](https://img.shields.io/github/stars/mohdshahjada3-star/ocean-guardian?style=flat-square)](https://github.com/mohdshahjada3-star/ocean-guardian)
+
+⭐ If this project helps you, please star it on GitHub!
+
+</div>
