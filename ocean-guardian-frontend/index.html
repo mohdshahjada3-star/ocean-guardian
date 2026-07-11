@@ -557,9 +557,7 @@
    Same origin when served by the OceanGuard backend (server.js
    now serves this file directly), otherwise fall back to the
    local dev server on port 5000. */
-const API = (window.location.port === '5000')
-  ? '/api'
-  : 'http://localhost:5000/api';
+const API = window.location.origin + '/api';
 
 /* ═══════════════════════ GLOBAL TOAST ═══════════════════════ */
 function showGlobalToast(message, duration) {
