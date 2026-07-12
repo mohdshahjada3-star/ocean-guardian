@@ -156,31 +156,32 @@ Suggest up to 5 real, well-known organizations (NGOs, coast guards, government e
 
 // ================= EMAIL NOTIFICATIONS =================
 // Emails the reporter when an admin moves their report to "in_progress"
-// or "resolved". Uses Brevo's HTTPS API (https://www.brevo.com) instead of
-// Gmail SMTP, because Render's free tier blocks outbound SMTP connections
-// (this is what was causing the "Connection timeout" errors in the logs).
-// Unlike Resend's sandbox mode, a verified Brevo sender can email ANY
-// recipient, not just your own signup address.
+// or "resolved". Uses Mailjet's HTTPS API (https://www.mailjet.com) instead
+// of Gmail SMTP, because Render's free tier blocks outbound SMTP
+// connections (this is what was causing the "Connection timeout" errors).
+// Mailjet's sender verification is instant (just click the confirmation
+// link in your inbox) — no manual review/waiting like Brevo.
 //
 // Setup (see chat for full walkthrough):
-// 1. Sign up at brevo.com
-// 2. Transactional > Settings > Senders, domains, IPs > verify a sender email
-// 3. Settings (gear icon) > SMTP & API > "API keys & MCP" tab > generate a key
-// 4. Put that key in .env as BREVO_API_KEY, and the verified sender email as
-//    BREVO_SENDER_EMAIL
+// 1. Sign up at mailjet.com
+// 2. Domains and senders > Add a sender address > verify via the email link
+// 3. Account Settings > API Key Management > copy the API Key + Secret Key
+// 4. Put them in .env as MAILJET_API_KEY and MAILJET_SECRET_KEY, and the
+//    verified sender email as MAILJET_SENDER_EMAIL
 
-const BREVO_API_KEY = process.env.BREVO_API_KEY;
-const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL;
-const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME || "OceanGuard Marine";
+const MAILJET_API_KEY = process.env.MAILJET_API_KEY;
+const MAILJET_SECRET_KEY = process.env.MAILJET_SECRET_KEY;
+const MAILJET_SENDER_EMAIL = process.env.MAILJET_SENDER_EMAIL;
+const MAILJET_SENDER_NAME = process.env.MAILJET_SENDER_NAME || "OceanGuard Marine";
 
-if (BREVO_API_KEY && BREVO_SENDER_EMAIL) {
-  console.log("✅ Email notifications enabled (Brevo)");
+if (MAILJET_API_KEY && MAILJET_SECRET_KEY && MAILJET_SENDER_EMAIL) {
+  console.log("✅ Email notifications enabled (Mailjet)");
 } else {
-  console.log("ℹ️  Email notifications disabled — set BREVO_API_KEY and BREVO_SENDER_EMAIL in .env to enable");
+  console.log("ℹ️  Email notifications disabled — set MAILJET_API_KEY, MAILJET_SECRET_KEY and MAILJET_SENDER_EMAIL in .env to enable");
 }
 
 async function sendStatusEmail(report, status) {
-  if (!BREVO_API_KEY || !BREVO_SENDER_EMAIL || !report.userEmail) return;
+  if (!MAILJET_API_KEY || !MAILJET_SECRET_KEY || !MAILJET_SENDER_EMAIL || !report.userEmail) return;
 
   const isResolved = status === "resolved";
 
@@ -210,30 +211,41 @@ async function sendStatusEmail(report, status) {
   const text = `Hi ${report.reportedBy || "there"},\n\n${headline}\n\nCategory: ${report.category || "N/A"}\nLocation: ${report.location || "N/A"}\nStatus: ${isResolved ? "Resolved" : "In Progress"}\n${report.adminNotes ? `Notes from our team: ${report.adminNotes}\n` : ""}\nThank you for helping protect our oceans.\n— The OceanGuard Team`;
 
   try {
-    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    const auth = Buffer.from(`${MAILJET_API_KEY}:${MAILJET_SECRET_KEY}`).toString("base64");
+
+    const response = await fetch("https://api.mailjet.com/v3.1/send", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Accept": "application/json",
-        "api-key": BREVO_API_KEY
+        "Authorization": `Basic ${auth}`
       },
       body: JSON.stringify({
-        sender: { name: BREVO_SENDER_NAME, email: BREVO_SENDER_EMAIL },
-        to: [{ email: report.userEmail, name: report.reportedBy || undefined }],
-        subject,
-        htmlContent: html,
-        textContent: text
+        Messages: [
+          {
+            From: { Email: MAILJET_SENDER_EMAIL, Name: MAILJET_SENDER_NAME },
+            To: [{ Email: report.userEmail, Name: report.reportedBy || undefined }],
+            Subject: subject,
+            TextPart: text,
+            HTMLPart: html
+          }
+        ]
       })
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Email send failed:", data.message || JSON.stringify(data));
+      console.error("Email send failed:", data.ErrorMessage || JSON.stringify(data));
       return;
     }
 
-    console.log(`📧 Status email sent to ${report.userEmail} (${status}) — messageId: ${data.messageId}`);
+    const messageStatus = data.Messages?.[0]?.Status;
+    if (messageStatus !== "success") {
+      console.error("Email send failed:", JSON.stringify(data.Messages?.[0]));
+      return;
+    }
+
+    console.log(`📧 Status email sent to ${report.userEmail} (${status})`);
   } catch (err) {
     console.error("Email send failed:", err.message);
   }
