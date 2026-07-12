@@ -8,7 +8,6 @@ const multer = require('multer');
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const admin = require('firebase-admin');
-const { Resend } = require('resend');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
@@ -157,29 +156,31 @@ Suggest up to 5 real, well-known organizations (NGOs, coast guards, government e
 
 // ================= EMAIL NOTIFICATIONS =================
 // Emails the reporter when an admin moves their report to "in_progress"
-// or "resolved". Uses Resend (https://resend.com) instead of Gmail SMTP,
-// because Render's free tier blocks outbound SMTP connections (this is
-// what was causing the "Connection timeout" errors in the logs).
+// or "resolved". Uses Brevo's HTTPS API (https://www.brevo.com) instead of
+// Gmail SMTP, because Render's free tier blocks outbound SMTP connections
+// (this is what was causing the "Connection timeout" errors in the logs).
+// Unlike Resend's sandbox mode, a verified Brevo sender can email ANY
+// recipient, not just your own signup address.
 //
-// Configure RESEND_API_KEY in .env to enable — get a free key at
-// https://resend.com/api-keys after signing up.
-//
-// EMAIL_FROM is optional — until you verify your own domain on Resend,
-// use their shared test address: onboarding@resend.dev
+// Setup (see chat for full walkthrough):
+// 1. Sign up at brevo.com
+// 2. Transactional > Settings > Senders, domains, IPs > verify a sender email
+// 3. Settings (gear icon) > SMTP & API > "API keys & MCP" tab > generate a key
+// 4. Put that key in .env as BREVO_API_KEY, and the verified sender email as
+//    BREVO_SENDER_EMAIL
 
-let resend = null;
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL;
+const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME || "OceanGuard Marine";
 
-if (process.env.RESEND_API_KEY) {
-  resend = new Resend(process.env.RESEND_API_KEY);
-  console.log("✅ Email notifications enabled (Resend)");
+if (BREVO_API_KEY && BREVO_SENDER_EMAIL) {
+  console.log("✅ Email notifications enabled (Brevo)");
 } else {
-  console.log("ℹ️  Email notifications disabled — set RESEND_API_KEY in .env to enable");
+  console.log("ℹ️  Email notifications disabled — set BREVO_API_KEY and BREVO_SENDER_EMAIL in .env to enable");
 }
 
-const EMAIL_FROM = process.env.EMAIL_FROM || "OceanGuard Marine <onboarding@resend.dev>";
-
 async function sendStatusEmail(report, status) {
-  if (!resend || !report.userEmail) return;
+  if (!BREVO_API_KEY || !BREVO_SENDER_EMAIL || !report.userEmail) return;
 
   const isResolved = status === "resolved";
 
@@ -209,20 +210,30 @@ async function sendStatusEmail(report, status) {
   const text = `Hi ${report.reportedBy || "there"},\n\n${headline}\n\nCategory: ${report.category || "N/A"}\nLocation: ${report.location || "N/A"}\nStatus: ${isResolved ? "Resolved" : "In Progress"}\n${report.adminNotes ? `Notes from our team: ${report.adminNotes}\n` : ""}\nThank you for helping protect our oceans.\n— The OceanGuard Team`;
 
   try {
-    const { data, error } = await resend.emails.send({
-      from: EMAIL_FROM,
-      to: report.userEmail,
-      subject,
-      html,
-      text
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "api-key": BREVO_API_KEY
+      },
+      body: JSON.stringify({
+        sender: { name: BREVO_SENDER_NAME, email: BREVO_SENDER_EMAIL },
+        to: [{ email: report.userEmail, name: report.reportedBy || undefined }],
+        subject,
+        htmlContent: html,
+        textContent: text
+      })
     });
 
-    if (error) {
-      console.error("Email send failed:", error.message || error);
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Email send failed:", data.message || JSON.stringify(data));
       return;
     }
 
-    console.log(`📧 Status email sent to ${report.userEmail} (${status}) — id: ${data.id}`);
+    console.log(`📧 Status email sent to ${report.userEmail} (${status}) — messageId: ${data.messageId}`);
   } catch (err) {
     console.error("Email send failed:", err.message);
   }
