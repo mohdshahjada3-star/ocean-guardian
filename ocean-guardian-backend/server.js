@@ -8,7 +8,7 @@ const multer = require('multer');
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const admin = require('firebase-admin');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
@@ -157,26 +157,29 @@ Suggest up to 5 real, well-known organizations (NGOs, coast guards, government e
 
 // ================= EMAIL NOTIFICATIONS =================
 // Emails the reporter when an admin moves their report to "in_progress"
-// or "resolved". Configure EMAIL_USER / EMAIL_PASS in .env to enable —
-// EMAIL_PASS should be a Gmail "App Password", not your real password.
+// or "resolved". Uses Resend (https://resend.com) instead of Gmail SMTP,
+// because Render's free tier blocks outbound SMTP connections (this is
+// what was causing the "Connection timeout" errors in the logs).
+//
+// Configure RESEND_API_KEY in .env to enable — get a free key at
+// https://resend.com/api-keys after signing up.
+//
+// EMAIL_FROM is optional — until you verify your own domain on Resend,
+// use their shared test address: onboarding@resend.dev
 
-let mailer = null;
+let resend = null;
 
-if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-  mailer = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
-  console.log("✅ Email notifications enabled");
+if (process.env.RESEND_API_KEY) {
+  resend = new Resend(process.env.RESEND_API_KEY);
+  console.log("✅ Email notifications enabled (Resend)");
 } else {
-  console.log("ℹ️  Email notifications disabled — set EMAIL_USER/EMAIL_PASS in .env to enable");
+  console.log("ℹ️  Email notifications disabled — set RESEND_API_KEY in .env to enable");
 }
 
+const EMAIL_FROM = process.env.EMAIL_FROM || "OceanGuard Marine <onboarding@resend.dev>";
+
 async function sendStatusEmail(report, status) {
-  if (!mailer || !report.userEmail) return;
+  if (!resend || !report.userEmail) return;
 
   const isResolved = status === "resolved";
 
@@ -203,23 +206,23 @@ async function sendStatusEmail(report, status) {
     </div>
   `;
 
+  const text = `Hi ${report.reportedBy || "there"},\n\n${headline}\n\nCategory: ${report.category || "N/A"}\nLocation: ${report.location || "N/A"}\nStatus: ${isResolved ? "Resolved" : "In Progress"}\n${report.adminNotes ? `Notes from our team: ${report.adminNotes}\n` : ""}\nThank you for helping protect our oceans.\n— The OceanGuard Team`;
+
   try {
-    const info = await mailer.sendMail({
-      from: `"OceanGuard" <${process.env.EMAIL_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
       to: report.userEmail,
       subject,
       html,
-      // A plain-text alternative alongside the HTML version is a basic
-      // deliverability best practice — HTML-only emails are more likely to
-      // get flagged as spam by some filters.
-      text: `Hi ${report.reportedBy || "there"},\n\n${headline}\n\nCategory: ${report.category || "N/A"}\nLocation: ${report.location || "N/A"}\nStatus: ${isResolved ? "Resolved" : "In Progress"}\n${report.adminNotes ? `Notes from our team: ${report.adminNotes}\n` : ""}\nThank you for helping protect our oceans.\n— The OceanGuard Team`
+      text
     });
-    // Logs Gmail's actual SMTP response (e.g. "250 2.0.0 OK ...") — if this
-    // line prints, Gmail accepted the message for delivery. That does NOT
-    // guarantee it lands in the inbox rather than Spam/Promotions, so if a
-    // report keeps going unreceived, check that folder first before
-    // assuming this code is broken.
-    console.log(`📧 Status email sent to ${report.userEmail} (${status}) — messageId: ${info.messageId}, response: ${info.response}`);
+
+    if (error) {
+      console.error("Email send failed:", error.message || error);
+      return;
+    }
+
+    console.log(`📧 Status email sent to ${report.userEmail} (${status}) — id: ${data.id}`);
   } catch (err) {
     console.error("Email send failed:", err.message);
   }
