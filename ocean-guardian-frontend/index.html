@@ -553,12 +553,8 @@
 
 <script>
 /* ═══════════════════════ API BASE ═══════════════════════
-   Same origin when served by the OceanGuard backend (server.js
-   now serves this file directly), otherwise fall back to the
-   local dev server on port 5000. */
-const API = (window.location.port === '5000')
-  ? '/api'
-  : 'http://localhost:5000/api';
+   Use relative path — works on any domain (localhost, Render, etc) */
+const API = '/api';
 
 /* ═══════════════════════ GLOBAL TOAST ═══════════════════════ */
 function showGlobalToast(message, duration) {
