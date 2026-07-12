@@ -12,9 +12,7 @@ const nodemailer = require('nodemailer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY 
-  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
-  : require(path.join(__dirname, 'serviceAccountKey.json'));
+const serviceAccount = require(path.join(__dirname, 'serviceAccountKey.json'));
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -195,13 +193,22 @@ async function sendStatusEmail(report, status) {
   `;
 
   try {
-    await mailer.sendMail({
+    const info = await mailer.sendMail({
       from: `"OceanGuard" <${process.env.EMAIL_USER}>`,
       to: report.userEmail,
       subject,
-      html
+      html,
+      // A plain-text alternative alongside the HTML version is a basic
+      // deliverability best practice — HTML-only emails are more likely to
+      // get flagged as spam by some filters.
+      text: `Hi ${report.reportedBy || "there"},\n\n${headline}\n\nCategory: ${report.category || "N/A"}\nLocation: ${report.location || "N/A"}\nStatus: ${isResolved ? "Resolved" : "In Progress"}\n${report.adminNotes ? `Notes from our team: ${report.adminNotes}\n` : ""}\nThank you for helping protect our oceans.\n— The OceanGuard Team`
     });
-    console.log(`📧 Status email sent to ${report.userEmail} (${status})`);
+    // Logs Gmail's actual SMTP response (e.g. "250 2.0.0 OK ...") — if this
+    // line prints, Gmail accepted the message for delivery. That does NOT
+    // guarantee it lands in the inbox rather than Spam/Promotions, so if a
+    // report keeps going unreceived, check that folder first before
+    // assuming this code is broken.
+    console.log(`📧 Status email sent to ${report.userEmail} (${status}) — messageId: ${info.messageId}, response: ${info.response}`);
   } catch (err) {
     console.error("Email send failed:", err.message);
   }

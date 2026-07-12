@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -557,7 +556,9 @@
    Same origin when served by the OceanGuard backend (server.js
    now serves this file directly), otherwise fall back to the
    local dev server on port 5000. */
-const API = window.location.origin + '/api';
+const API = (window.location.port === '5000')
+  ? '/api'
+  : 'http://localhost:5000/api';
 
 /* ═══════════════════════ GLOBAL TOAST ═══════════════════════ */
 function showGlobalToast(message, duration) {
@@ -647,8 +648,12 @@ function initReportMap() {
 
   setTimeout(() => reportMap.invalidateSize(), 100);
 
-  // Auto-detect location as soon as the map opens
-  locateReportMap(true);
+  // NOTE: we deliberately do NOT auto-call locateReportMap() here anymore.
+  // Calling getCurrentPosition() without a direct tap is unreliable on
+  // mobile Chrome — some builds silently ignore it or "use up" the
+  // permission prompt before the user even sees it, which then makes the
+  // real "Detect My Location" button appear broken too. Requiring an
+  // explicit tap guarantees the permission prompt fires properly.
 
   // Hide suggestions when clicking elsewhere on the form
   document.addEventListener('click', (e) => {
@@ -812,26 +817,50 @@ function locateReportMap(silent) {
   const btn = document.getElementById('locateBtn');
   if (btn) { btn.disabled = true; btn.textContent = '🎯 Detecting...'; }
 
-  navigator.geolocation.getCurrentPosition(
-    async pos => {
-      const lat = pos.coords.latitude, lng = pos.coords.longitude;
-      reportMap.setView([lat, lng], 16);
-      updateCenterCoords();
-      if (btn) { btn.disabled = false; btn.textContent = '🎯 Detect My Location'; }
+  const onSuccess = async pos => {
+    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+    reportMap.setView([lat, lng], 16);
+    updateCenterCoords();
+    if (btn) { btn.disabled = false; btn.textContent = '🎯 Detect My Location'; }
 
-      try {
-        const data = await reverseGeocode(lat, lng);
-        setLocationNameField(shortLocationName(data));
-      } catch (e) {
-        // Reverse geocoding failed (offline/rate-limited) — the map pin is
-        // still set correctly, they can just type the location name by hand.
-      }
+    try {
+      const data = await reverseGeocode(lat, lng);
+      setLocationNameField(shortLocationName(data));
+    } catch (e) {
+      // Reverse geocoding failed (offline/rate-limited) — the map pin is
+      // still set correctly, they can just type the location name by hand.
+    }
+  };
+
+  const onFinalError = err => {
+    if (btn) { btn.disabled = false; btn.textContent = '🎯 Detect My Location'; }
+    if (silent) return;
+
+    let msg = 'Could not detect your location. Please drag the map to your location instead.';
+    if (err && err.code === 1) {
+      msg = 'Location access is blocked for this site. Please allow location permission for this site in your browser settings, then try again.';
+    } else if (err && err.code === 2) {
+      msg = 'Your device could not determine a location. Please make sure Location/GPS is turned on, then try again.';
+    } else if (err && err.code === 3) {
+      msg = 'Location detection timed out. Please check your GPS/network signal and try again, or drag the map manually.';
+    }
+    showReportAlert(msg, 'error');
+  };
+
+  // First try: fast, high-accuracy GPS fix.
+  navigator.geolocation.getCurrentPosition(
+    onSuccess,
+    firstErr => {
+      // High-accuracy GPS often fails indoors or on some Android/Chrome
+      // builds — automatically retry once with a looser, network-based
+      // request before giving up and showing an error.
+      navigator.geolocation.getCurrentPosition(
+        onSuccess,
+        () => onFinalError(firstErr),
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
+      );
     },
-    () => {
-      if (btn) { btn.disabled = false; btn.textContent = '🎯 Detect My Location'; }
-      if (!silent) showReportAlert('Could not detect your location. Please drag the map to your location instead.', 'error');
-    },
-    { enableHighAccuracy: true, timeout: 8000 }
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 }
 
